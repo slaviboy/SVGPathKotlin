@@ -8,6 +8,22 @@ import java.lang.IllegalArgumentException
 import java.util.*
 import kotlin.collections.ArrayList
 
+// Copyright (C) 2020 Stanislav Georgiev
+//  https://github.com/slaviboy
+//
+//	This program is free software: you can redistribute it and/or modify
+//	it under the terms of the GNU Affero General Public License as
+//	published by the Free Software Foundation, either version 3 of the
+//	License, or (at your option) any later version.
+//
+//	This program is distributed in the hope that it will be useful,
+//	but WITHOUT ANY WARRANTY; without even the implied warranty of
+//	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//	GNU Affero General Public License for more details.
+//
+//	You should have received a copy of the GNU Affero General Public License
+//	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 class SvgPathGroup() {
 
     constructor(vararg paths: SvgPath) : this() {
@@ -18,7 +34,10 @@ class SvgPathGroup() {
         paths = (data.map { it -> SvgPath(it) }).toCollection(ArrayList()) as ArrayList<SvgPath>
     }
 
-    private var paths: ArrayList<SvgPath> = arrayListOf() // array with all svg paths used in this group
+    private var paths: ArrayList<SvgPath> = arrayListOf()        // array with all svg paths used in this group
+    private var onDrawListener: (                                // reference to the callback for the onDraw
+        (canvas: Canvas, paint: Paint, paths: ArrayList<SvgPath>) -> Unit
+    )? = null
 
     // bound surrounding all paths
     var bound: Bound = Bound()
@@ -100,6 +119,16 @@ class SvgPathGroup() {
         paths.removeAt(index)
     }
 
+    /**
+     * Set opacity for the whole group, that means all paths simultaneously
+     * @param opacity opacity as value between [0,1]
+     */
+    fun opacity(opacity: Double): SvgPathGroup {
+        paths.forEach {
+            it.opacity(opacity)
+        }
+        return this
+    }
 
     /**
      * Rotate the whole group, that means all paths simultaneously
@@ -172,6 +201,35 @@ class SvgPathGroup() {
         return this.skew(degXY, degXY)
     }
 
+    /**
+     * Flip the whole group horizontally, that means all paths simultaneously
+     */
+    fun flipHorizontal(): SvgPathGroup {
+        paths.forEach {
+            it.flipHorizontal()
+        }
+        return this
+    }
+
+    /**
+     * Flip the whole group vertically, that means all paths simultaneously
+     */
+    fun flipVertical(): SvgPathGroup {
+        paths.forEach {
+            it.flipVertical()
+        }
+        return this
+    }
+
+    /**
+     * Flip the whole group centrally, that means all paths simultaneously
+     */
+    fun flipCentral(): SvgPathGroup {
+        paths.forEach {
+            it.flipCentral()
+        }
+        return this
+    }
 
     /**
      * Set stroke style for the whole group
@@ -270,6 +328,13 @@ class SvgPathGroup() {
      * with paint object if presented
      */
     fun draw(canvas: Canvas, paint: Paint = Paint().apply { isAntiAlias = true }) {
+
+        // it will trigger the callback instead of continuing the drawing from this method
+        if (onDrawListener != null) {
+            onDrawListener?.invoke(canvas, paint, paths)
+            return
+        }
+
         paths.forEach {
             it.draw(canvas, paint)
         }
@@ -395,4 +460,11 @@ class SvgPathGroup() {
         return this
     }
 
+    /**
+     * Method used for custom drawing, allowing more robust using
+     * of the canvas, paint and path objects
+     */
+    fun onDraw(callback: (canvas: Canvas, paint: Paint, paths: ArrayList<SvgPath>) -> Unit) {
+        onDrawListener = callback
+    }
 }

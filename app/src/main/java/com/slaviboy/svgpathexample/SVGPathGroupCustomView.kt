@@ -5,13 +5,13 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.util.AttributeSet
-import android.util.Log
 import android.view.View
 import android.view.ViewTreeObserver
 import com.slaviboy.svgpath.Bound
 import com.slaviboy.svgpath.PointD
-import com.slaviboy.svgpath.SvgPath
 import com.slaviboy.svgpath.SvgPathGroup
+import java.util.*
+
 
 // Copyright (C) 2020 Stanislav Georgiev
 //  https://github.com/slaviboy
@@ -29,7 +29,7 @@ import com.slaviboy.svgpath.SvgPathGroup
 //	You should have received a copy of the GNU Affero General Public License
 //	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-class SvgPathGroupView : View {
+class SVGPathGroupCustomView : View {
 
     constructor(context: Context?) : super(context)
     constructor(context: Context?, attrs: AttributeSet?) : super(context, attrs)
@@ -102,8 +102,17 @@ class SvgPathGroupView : View {
             .strokeWidth(10.0)
             .strokeCap("round")
             .strokeJoin("round")
+            .flipHorizontal()
 
+        svgPathGroup.onDraw { canvas, paint, paths ->
 
+            // generate random color for each path
+            paths.forEach {
+                val randomColor = getRandomColor()
+                it.strokeStyle(randomColor)
+                it.draw(canvas, paint)
+            }
+        }
 
         this.afterMeasured {
 
@@ -113,6 +122,11 @@ class SvgPathGroupView : View {
                 height / 2 - (bound.bottom - bound.top) / 2
             )
         }
+    }
+
+    fun getRandomColor(): Int {
+        val rnd = Random()
+        return Color.argb(255, rnd.nextInt(256), rnd.nextInt(256), rnd.nextInt(256))
     }
 
     override fun onDraw(canvas: Canvas?) {
