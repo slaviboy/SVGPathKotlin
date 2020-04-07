@@ -4,13 +4,9 @@ import android.animation.Animator
 import android.animation.AnimatorSet
 import android.animation.ObjectAnimator
 import android.content.Context
-import android.graphics.Canvas
-import android.graphics.Color
-import android.graphics.Paint
-import android.graphics.Path
+import android.graphics.*
 import android.util.AttributeSet
-import android.view.View
-import com.slaviboy.svgpath.PointD
+import android.view.View 
 import com.slaviboy.svgpath.SvgPathGroup
 import kotlin.collections.ArrayList
 
@@ -40,7 +36,7 @@ class JordanView : View, View.OnClickListener {
     constructor(context: Context?, attrs: AttributeSet?) : super(context, attrs) {}
     constructor(context: Context?, attrs: AttributeSet?, defStyleAttr: Int) : super(context, attrs, defStyleAttr) {}
 
-    private val center: PointD                                   // center of the path group
+    private val center: PointF                                   // center of the path group
     private var svgPathGroup: SvgPathGroup                       // the path group with all svg paths
     private var paths: ArrayList<Path>                           // all graphic paths generated from the svg paths
     private val paints: ArrayList<CustomPaint> = ArrayList()     // each path has its own custom paint object, that is used for the animation

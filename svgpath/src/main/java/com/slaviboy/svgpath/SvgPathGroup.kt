@@ -1,8 +1,6 @@
 package com.slaviboy.svgpath
 
-import android.graphics.Canvas
-import android.graphics.Paint
-import android.graphics.Path
+import android.graphics.*
 import android.util.Log
 import java.lang.IllegalArgumentException
 import java.util.*
@@ -40,14 +38,14 @@ class SvgPathGroup() {
     )? = null
 
     // bound surrounding all paths
-    var bound: Bound = Bound()
+    var bound: RectF = RectF()
         get() {
 
-            val boundTemp = Bound(
-                Double.POSITIVE_INFINITY,
-                Double.POSITIVE_INFINITY,
-                Double.NEGATIVE_INFINITY,
-                Double.NEGATIVE_INFINITY
+            val boundTemp = RectF(
+                Float.POSITIVE_INFINITY,
+                Float.POSITIVE_INFINITY,
+                Float.NEGATIVE_INFINITY,
+                Float.NEGATIVE_INFINITY
             )
 
             // loop through all path bounds and find the minimum and maximum for X and Y
@@ -68,14 +66,14 @@ class SvgPathGroup() {
         }
 
     // center of the bound surrounding all paths
-    var center: PointD = PointD()
+    var center: PointF = PointF()
         get() {
 
             // return center point from the bound
             val b = bound
-            field = PointD(
-                (b.left + b.right) / 2.0,
-                (b.top + b.bottom) / 2.0
+            field = PointF(
+                (b.left + b.right) / 2.0f,
+                (b.top + b.bottom) / 2.0f
             )
             return field
         }
@@ -123,7 +121,7 @@ class SvgPathGroup() {
      * Set opacity for the whole group, that means all paths simultaneously
      * @param opacity opacity as value between [0,1]
      */
-    fun opacity(opacity: Double): SvgPathGroup {
+    fun opacity(opacity: Float): SvgPathGroup {
         paths.forEach {
             it.opacity(opacity)
         }
@@ -134,7 +132,7 @@ class SvgPathGroup() {
      * Rotate the whole group, that means all paths simultaneously
      * @param deg rotational degree
      */
-    fun rotate(deg: Double): SvgPathGroup {
+    fun rotate(deg: Float): SvgPathGroup {
         paths.forEach {
             it.rotate(deg)
         }
@@ -146,7 +144,7 @@ class SvgPathGroup() {
      * @param x horizontally
      * @param y vertically
      */
-    fun translate(x: Double = 0.0, y: Double = 0.0): SvgPathGroup {
+    fun translate(x: Float = 0.0f, y: Float = 0.0f): SvgPathGroup {
         paths.forEach {
             it.translate(x, y)
         }
@@ -157,7 +155,7 @@ class SvgPathGroup() {
      * Translate the whole group, that means all paths simultaneously
      * @param xy horizontally and vertically
      */
-    fun translate(xy: Double = 0.0): SvgPathGroup {
+    fun translate(xy: Float = 0.0f): SvgPathGroup {
         return this.translate(xy, xy)
     }
 
@@ -166,7 +164,7 @@ class SvgPathGroup() {
      * @param x horizontally
      * @param y vertically
      */
-    fun scale(x: Double = 0.0, y: Double = 0.0): SvgPathGroup {
+    fun scale(x: Float = 0.0f, y: Float = 0.0f): SvgPathGroup {
         paths.forEach {
             it.scale(x, y)
         }
@@ -177,7 +175,7 @@ class SvgPathGroup() {
      * Scale the whole group, that means all paths simultaneously
      * @param xy horizontally and vertically
      */
-    fun scale(xy: Double = 0.0): SvgPathGroup {
+    fun scale(xy: Float = 0.0f): SvgPathGroup {
         return this.scale(xy, xy)
     }
 
@@ -186,7 +184,7 @@ class SvgPathGroup() {
      * @param degX degree fro horizontal direction
      * @param degY degree fro horizontal vertical
      */
-    fun skew(degX: Double = 0.0, degY: Double = 0.0): SvgPathGroup {
+    fun skew(degX: Float = 0.0f, degY: Float = 0.0f): SvgPathGroup {
         paths.forEach {
             it.skew(degX, degY)
         }
@@ -197,7 +195,7 @@ class SvgPathGroup() {
      * Skew the whole group, that means all paths simultaneously
      * @param degXY degree fro both horizontal and vertical direction
      */
-    fun skew(degXY: Double = 0.0): SvgPathGroup {
+    fun skew(degXY: Float = 0.0f): SvgPathGroup {
         return this.skew(degXY, degXY)
     }
 
@@ -257,7 +255,7 @@ class SvgPathGroup() {
      * Set stroke width for the whole group
      * @param value stroke width in pixels
      */
-    fun strokeWidth(value: Double): SvgPathGroup {
+    fun strokeWidth(value: Float): SvgPathGroup {
         paths.forEach {
             it.strokeWidth(value)
         }
@@ -345,7 +343,7 @@ class SvgPathGroup() {
      * for n number of paths, they all follow the pattern: x0,y0, x1,y1, x2,y2, ....xn,yn
      * @param translations translations as list of coordinate for each path
      */
-    fun translateEach(vararg translations: Double): SvgPathGroup {
+    fun translateEach(vararg translations: Float): SvgPathGroup {
 
         require(translations.size / 2 == paths.size) {
             "Total number of translation: ${translations.size / 2} does not math the number of paths ${paths.size}!"
@@ -363,7 +361,7 @@ class SvgPathGroup() {
      * have the following pattern: p1, p2, p3, ... pn {where p is representation of a point}
      * @param translations translations as list of points for each path
      */
-    fun translateEach(vararg translations: PointD): SvgPathGroup {
+    fun translateEach(vararg translations: PointF): SvgPathGroup {
 
         require(translations.size == paths.size) {
             "Total number of translation: ${translations.size} does not math the number of paths ${paths.size}!"
@@ -380,7 +378,7 @@ class SvgPathGroup() {
      * pattern is in place: d1, d2, d3, ... dn {where d is representation of a degree}
      * @param degrees rotation as list of degrees for each path
      */
-    fun rotateEach(vararg degrees: Double): SvgPathGroup {
+    fun rotateEach(vararg degrees: Float): SvgPathGroup {
 
         require(degrees.size == paths.size) {
             "Total number of rotations: ${degrees.size} does not math the number of paths ${paths.size}!"
@@ -397,7 +395,7 @@ class SvgPathGroup() {
      * for n number of paths, they all follow the pattern: x0,y0, x1,y1, x2,y2, ....xn,yn
      * @param scales scales as coordinate list for each path
      */
-    fun scaleEach(vararg scales: Double): SvgPathGroup {
+    fun scaleEach(vararg scales: Float): SvgPathGroup {
 
         require(scales.size / 2 == paths.size) {
             "Total number of scales: ${scales.size / 2} does not math the number of paths ${paths.size}!"
@@ -414,7 +412,7 @@ class SvgPathGroup() {
      * pattern: p1, p2, p3, ... pn {where p is representation of a point}
      * @param scales scales as list of points for each path
      */
-    fun scaleEach(vararg scales: PointD): SvgPathGroup {
+    fun scaleEach(vararg scales: PointF): SvgPathGroup {
 
         require(scales.size == paths.size) {
             "Total number of scales: ${scales.size} does not math the number of paths ${paths.size}!"
@@ -431,7 +429,7 @@ class SvgPathGroup() {
      * for n number of paths, they all follow the pattern: x0,y0, x1,y1, x2,y2, ....xn,yn
      * @param degrees degrees as coordinate list for each path
      */
-    fun skewEach(vararg degrees: Double): SvgPathGroup {
+    fun skewEach(vararg degrees: Float): SvgPathGroup {
 
         require(degrees.size / 2 == paths.size) {
             "Total number of skews: ${degrees.size / 2} does not math the number of paths ${paths.size}!"
@@ -448,7 +446,7 @@ class SvgPathGroup() {
      * pattern: p1, p2, p3, ... pn {where p is representation of a point}
      * @param degrees degrees as list of points for each path
      */
-    fun skewEach(vararg degrees: PointD): SvgPathGroup {
+    fun skewEach(vararg degrees: PointF): SvgPathGroup {
 
         require(degrees.size == paths.size) {
             "Total number of skews: ${degrees.size} does not math the number of paths ${paths.size}!"

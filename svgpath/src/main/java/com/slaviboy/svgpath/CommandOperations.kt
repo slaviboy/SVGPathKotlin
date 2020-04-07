@@ -1,5 +1,6 @@
 package com.slaviboy.svgpath
 
+import android.graphics.PointF
 import android.util.Log
 import com.slaviboy.svgpath.Command.Companion.numberOfCoordinates
 import java.lang.IllegalArgumentException
@@ -27,7 +28,7 @@ import java.lang.IllegalArgumentException
  */
 object CommandOperations {
 
-    val TAU = Math.PI * 2.0
+    val TAU = (Math.PI * 2.0f).toFloat()
 
     /**
      * Parse the string data, and separate it to the supposing commands
@@ -65,7 +66,7 @@ object CommandOperations {
 
                     // generate commands by separating the expected number of coordinates for each type
                     for (i in 0 until coordinates.size step steps) {
-                        data.add(Command(type, ArrayList<Double>(coordinates.subList(i, i + steps))))
+                        data.add(Command(type, ArrayList<Float>(coordinates.subList(i, i + steps))))
                     }
                 }
             }
@@ -79,10 +80,10 @@ object CommandOperations {
      * @return array list {cx, cy, theta1, deltaTheta}
      */
     fun getArcCenter(
-        x1: Double, y1: Double, x2: Double, y2: Double,
-        fa: Double, fs: Double, rx: Double, ry: Double,
-        sinPhi: Double, cosPhi: Double
-    ): ArrayList<Double> {
+        x1: Float, y1: Float, x2: Float, y2: Float,
+        fa: Float, fs: Float, rx: Float, ry: Float,
+        sinPhi: Float, cosPhi: Float
+    ): ArrayList<Float> {
 
         /**
          *  moving an ellipse so origin will be the middle point
@@ -99,13 +100,13 @@ object CommandOperations {
 
         // compute coordinates of the centre of this ellipse (cx', cy') in the new coordinate system.
         var radicant = (rxSq * rySq) - (rxSq * y1pSq) - (rySq * x1pSq)
-        if (radicant < 0.0) {
+        if (radicant < 0.0f) {
             // due to rounding errors it might be e.g. -1.3877787807814457e-17
-            radicant = 0.0
+            radicant = 0.0f
         }
 
         radicant /= (rxSq * y1pSq) + (rySq * x1pSq)
-        radicant = Math.sqrt(radicant) * (if (fa == fs) -1 else 1)
+        radicant = Math.sqrt(radicant.toDouble()).toFloat() * (if (fa == fs) -1 else 1)
 
         val cxp = radicant * rx / ry * y1p
         val cyp = radicant * -ry / rx * x1p
@@ -120,13 +121,13 @@ object CommandOperations {
         val v2x = (-x1p - cxp) / rx
         val v2y = (-y1p - cyp) / ry
 
-        val theta1 = unitVectorAngle(1.0, 0.0, v1x, v1y)
+        val theta1 = unitVectorAngle(1.0f, 0.0f, v1x, v1y)
         var deltaTheta = unitVectorAngle(v1x, v1y, v2x, v2y)
 
-        if (fs == 0.0 && deltaTheta > 0.0) {
+        if (fs == 0.0f && deltaTheta > 0.0f) {
             deltaTheta -= TAU
         }
-        if (fs == 1.0 && deltaTheta < 0.0) {
+        if (fs == 1.0f && deltaTheta < 0.0f) {
             deltaTheta += TAU
         }
 
@@ -139,31 +140,31 @@ object CommandOperations {
      *  between radii of circular arcs, we can use simplified math
      *  (without length normalization)
      */
-    fun unitVectorAngle(ux: Double, uy: Double, vx: Double, vy: Double): Double {
+    fun unitVectorAngle(ux: Float, uy: Float, vx: Float, vy: Float): Float {
         val sign = if (ux * vy - uy * vx < 0.0) -1 else 1
         var dot = ux * vx + uy * vy
 
         // Add this to work with arbitrary vectors:
         // dot /= Math.sqrt(ux * ux + uy * uy) * Math.sqrt(vx * vx + vy * vy);
         // rounding errors, e.g. -1.0000000000000002 can screw up this
-        if (dot > 1.0) {
-            dot = 1.0
+        if (dot > 1.0f) {
+            dot = 1.0f
         }
-        if (dot < -1.0) {
-            dot = -1.0
+        if (dot < -1.0f) {
+            dot = -1.0f
         }
 
-        return sign * Math.acos(dot)
+        return (sign * Math.acos(dot.toDouble())).toFloat()
     }
 
     // approximate one unit arc segment with bézier curves
-    fun approximateUnitArc(theta1: Double, deltaTheta: Double): ArrayList<Double> {
-        val alpha = 4.0 / 3.0 * Math.tan(deltaTheta / 4.0)
+    fun approximateUnitArc(theta1: Float, deltaTheta: Float): ArrayList<Float> {
+        val alpha = 4.0f / 3.0f * Math.tan(deltaTheta / 4.0).toFloat()
 
-        val x1 = Math.cos(theta1)
-        val y1 = Math.sin(theta1)
-        val x2 = Math.cos(theta1 + deltaTheta)
-        val y2 = Math.sin(theta1 + deltaTheta)
+        val x1 = Math.cos(theta1.toDouble()).toFloat()
+        val y1 = Math.sin(theta1.toDouble()).toFloat()
+        val x2 = Math.cos(theta1.toDouble() + deltaTheta).toFloat()
+        val y2 = Math.sin(theta1.toDouble() + deltaTheta).toFloat()
 
         return arrayListOf(
             x1,
@@ -182,9 +183,9 @@ object CommandOperations {
      * expected type 'C' after the conversion
      */
     fun ellipticalArcToCurve(
-        x1: Double, y1: Double, x2: Double, y2: Double,
-        fa: Double, fs: Double, rx: Double, ry: Double, phi: Double
-    ): ArrayList<ArrayList<Double>> {
+        x1: Float, y1: Float, x2: Float, y2: Float,
+        fa: Float, fs: Float, rx: Float, ry: Float, phi: Float
+    ): ArrayList<ArrayList<Float>> {
 
         val sinPhi = Math.sin(phi * TAU / 360.0)
         val cosPhi = Math.cos(phi * TAU / 360.0)
@@ -198,7 +199,7 @@ object CommandOperations {
             return arrayListOf()
         }
 
-        if (rx == 0.0 || ry == 0.0) {
+        if (rx == 0.0f || ry == 0.0f) {
             // one of the radii is zero
             return arrayListOf()
         }
@@ -209,27 +210,27 @@ object CommandOperations {
 
         val lambda = (x1p * x1p) / (_rx * _rx) + (y1p * y1p) / (_ry * _ry)
         if (lambda > 1) {
-            _rx *= Math.sqrt(lambda)
-            _ry *= Math.sqrt(lambda)
+            _rx *= Math.sqrt(lambda).toFloat()
+            _ry *= Math.sqrt(lambda).toFloat()
         }
 
         // get center parameters (cx, cy, theta1, deltaTheta)
-        val cc = getArcCenter(x1, y1, x2, y2, fa, fs, _rx, _ry, sinPhi, cosPhi);
+        val cc = getArcCenter(x1, y1, x2, y2, fa, fs, _rx, _ry, sinPhi.toFloat(), cosPhi.toFloat())
 
-        val result = arrayListOf<ArrayList<Double>>()
+        val result = arrayListOf<ArrayList<Float>>()
         var theta1 = cc[2]
         var deltaTheta = cc[3]
 
         // split an arc to multiple segments, so each segment will be less than τ/4 (= 90°)
-        var segments = Math.max(Math.ceil(Math.abs(deltaTheta) / (TAU / 4.0)), 1.0)
-        deltaTheta /= segments
+        val segments = Math.max(Math.ceil(Math.abs(deltaTheta) / (TAU / 4.0)), 1.0)
+        deltaTheta /= segments.toFloat()
 
         for (i in 0 until segments.toInt()) {
             result.add(approximateUnitArc(theta1, deltaTheta))
             theta1 += deltaTheta
         }
 
-        fun innerFunc(curve: ArrayList<Double>): ArrayList<Double> {
+        fun innerFunc(curve: ArrayList<Float>): ArrayList<Float> {
             for (i in curve.indices step 2) {
                 var x = curve[i + 0]
                 var y = curve[i + 1]
@@ -243,8 +244,8 @@ object CommandOperations {
                 val yp = sinPhi * x + cosPhi * y
 
                 // translate
-                curve[i + 0] = xp + cc[0];
-                curve[i + 1] = yp + cc[1];
+                curve[i + 0] = xp.toFloat() + cc[0]
+                curve[i + 1] = yp.toFloat() + cc[1]
             }
             return curve
         }
@@ -260,11 +261,11 @@ object CommandOperations {
      */
     fun absolutize(commands: ArrayList<Command>): ArrayList<Command> {
 
-        val start = PointD()
-        val p = PointD()
+        val start = PointF()
+        val p = PointF()
 
         // inner function that is used with the custom map method
-        fun absolutizeInner(command: Command, start: PointD, p: PointD): Command {
+        fun absolutizeInner(command: Command, start: PointF, p: PointF): Command {
 
             val type = command.type
             val cords = command.coordinates
@@ -337,10 +338,10 @@ object CommandOperations {
 
         // init state
         var previousType = ' '
-        var p = PointD()
-        val quad = PointD()
-        var start = PointD()
-        var bezier = PointD()
+        var p = PointF()
+        val quad = PointF()
+        var start = PointF()
+        var bezier = PointF()
         val result = ArrayList<Command>()
 
         loop@ for (i in commands.indices) {
@@ -354,8 +355,8 @@ object CommandOperations {
 
                 // move to
                 'M' -> {
-                    start = PointD(cords[0], cords[1])
-                    Command.fromPoints('M', PointD(start))
+                    start = PointF(cords[0], cords[1])
+                    Command.fromPoints('M', PointF(start.x, start.y))
                 }
 
                 // elliptical arc
@@ -373,9 +374,9 @@ object CommandOperations {
                         val c = curves[j]
                         newCommand = Command.fromPoints(
                             'C',
-                            PointD(c[2], c[3]),
-                            PointD(c[4], c[5]),
-                            PointD(c[6], c[7])
+                            PointF(c[2], c[3]),
+                            PointF(c[4], c[5]),
+                            PointF(c[6], c[7])
                         )
                         if (j < curves.size - 1) {
                             result.add(newCommand)
@@ -388,7 +389,7 @@ object CommandOperations {
                 'S' -> {
 
                     // default control point
-                    val c = PointD(p)
+                    val c = PointF(p.x, p.y)
                     if (previousType == 'C' || previousType == 'S') {
                         c.x += c.x - bezier.x // reflect the previous commandType's control
                         c.y += c.y - bezier.y // point relative to the current point
@@ -396,8 +397,8 @@ object CommandOperations {
                     Command.fromPoints(
                         'C',
                         c,
-                        PointD(cords[0], cords[1]),
-                        PointD(cords[2], cords[3])
+                        PointF(cords[0], cords[1]),
+                        PointF(cords[2], cords[3])
                     )
                 }
 
@@ -413,7 +414,7 @@ object CommandOperations {
                         quad.x = p.x
                         quad.y = p.y
                     }
-                    Command.fromQuadratic(p, quad, PointD(cords[0], cords[1]))
+                    Command.fromQuadratic(p, quad, PointF(cords[0], cords[1]))
                 }
 
                 // quadratic Bézier curve to
@@ -422,24 +423,24 @@ object CommandOperations {
                     quad.y = cords[1]
                     Command.fromQuadratic(
                         p,
-                        PointD(cords[0], cords[1]),
-                        PointD(cords[2], cords[3])
+                        PointF(cords[0], cords[1]),
+                        PointF(cords[2], cords[3])
                     )
                 }
 
                 // line to
                 'L' -> {
-                    Command.fromLine(p, PointD(cords[0], cords[1]))
+                    Command.fromLine(p, PointF(cords[0], cords[1]))
                 }
 
                 // horizontal line to
                 'H' -> {
-                    Command.fromLine(p, PointD(cords[0], p.y))
+                    Command.fromLine(p, PointF(cords[0], p.y))
                 }
 
                 // vertical line to
                 'V' -> {
-                    Command.fromLine(p, PointD(p.x, cords[0]))
+                    Command.fromLine(p, PointF(p.x, cords[0]))
                 }
 
                 // close path
@@ -451,9 +452,9 @@ object CommandOperations {
                 'C' -> {
                     Command.fromPoints(
                         'C',
-                        PointD(cords[0], cords[1]),
-                        PointD(cords[2], cords[3]),
-                        PointD(cords[4], cords[5])
+                        PointF(cords[0], cords[1]),
+                        PointF(cords[2], cords[3]),
+                        PointF(cords[4], cords[5])
                     )
                 }
 
@@ -463,11 +464,11 @@ object CommandOperations {
             // update states for the next loop
             val points = command.points
             previousType = typeBeforeChange
-            p = PointD(points[points.size - 1])
+            p = PointF(points[points.size - 1].x, points[points.size - 1].y)
             bezier = if (cords.size > 2) {
-                PointD(points[points.size - 2])
+                PointF(points[points.size - 2].x, points[points.size - 2].y)
             } else {
-                PointD(p)
+                PointF(p.x, p.y)
             }
             result.add(command)
         }

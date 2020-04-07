@@ -7,7 +7,6 @@ import android.util.AttributeSet
 import android.util.Log
 import android.view.View
 import android.view.ViewTreeObserver
-import com.slaviboy.svgpath.PointD
 import com.slaviboy.svgpath.SvgPath
 
 // Copyright (C) 2020 Stanislav Georgiev
@@ -73,14 +72,14 @@ class SvgPathView : View {
 
         svgPath.save()
             .translate(-center.x, -center.y)
-            .scale(0.4)
-            //.rotate(180.0)
-            //.skew(0.0, 0.0)
+            .scale(0.4f)
+            //.rotate(180.0f)
+            //.skew(0.0f, 0.0f)
             //.flipHorizontal()
             .strokeStyle(Color.BLACK)
             .fillStyle(Color.RED)
-            .strokeWidth(2.0)
-            .opacity(1.0)
+            .strokeWidth(2.0f)
+            .opacity(1.0f)
 
         svgPath.onDraw { canvas, paint, path ->
 
@@ -105,15 +104,15 @@ class SvgPathView : View {
             paint.textSize = 50.0f
             paint.color = Color.WHITE
             paint.setShadowLayer(1.0f, -2.0f, 2.0f, Color.BLACK);
-            drawCenteredText(canvas, paint, "BULGARIA", PointD(-20.0, 0.0))
+            drawCenteredText(canvas, paint, "BULGARIA", PointF(-20.0f, 0.0f))
         }
 
         this.afterMeasured {
 
             // translate path to center
             svgPath.translate(
-                (width / 2.0),
-                (height / 2.0)
+                (width / 2.0f),
+                (height / 2.0f)
             )
         }
     }
@@ -124,7 +123,7 @@ class SvgPathView : View {
      * @param paint paint with properties for the drawing
      * @param text text value
      */
-    private fun drawCenteredText(canvas: Canvas, paint: Paint, text: String = "Ups..", offset: PointD) {
+    private fun drawCenteredText(canvas: Canvas, paint: Paint, text: String = "Ups..", offset: PointF) {
 
         // get canvas bound
         val canvasRect = Rect()

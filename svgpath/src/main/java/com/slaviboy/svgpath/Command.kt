@@ -1,5 +1,6 @@
 package com.slaviboy.svgpath
 
+import android.graphics.PointF
 import android.util.Log
 import java.lang.IllegalArgumentException
 import java.util.regex.Matcher
@@ -33,8 +34,8 @@ import java.util.regex.Pattern
  */
 class Command(
     var type: Char = TYPE_M.toChar(),
-    var coordinates: ArrayList<Double> = ArrayList(),
-    var points: ArrayList<PointD> = ArrayList()
+    var coordinates: ArrayList<Float> = ArrayList(),
+    var points: ArrayList<PointF> = ArrayList()
 ) {
 
     /**
@@ -58,7 +59,7 @@ class Command(
      * @param type command type 'M' or 'C'
      * @param points array with points for the path command
      */
-    constructor(type: Char, vararg points: PointD) : this(type) {
+    constructor(type: Char, vararg points: PointF) : this(type) {
         this.points = points.toCollection(ArrayList())
     }
 
@@ -70,8 +71,8 @@ class Command(
          * @param p1 first point
          * @param p2 second point
          */
-        fun fromLine(p1: PointD, p2: PointD): Command {
-            return Command('C', PointD(p1), PointD(p2), PointD(p2))
+        fun fromLine(p1: PointF, p2: PointF): Command {
+            return Command('C', PointF(p1.x, p1.y), PointF(p2.x, p2.y), PointF(p2.x, p2.y))
         }
 
         /**
@@ -81,12 +82,12 @@ class Command(
          * @param c control point
          * @param p2 end point
          */
-        fun fromQuadratic(p1: PointD, c: PointD, p2: PointD): Command {
+        fun fromQuadratic(p1: PointF, c: PointF, p2: PointF): Command {
             return Command(
                 'C',
-                PointD(p1.x / 3.0 + (2.0 / 3.0) * c.x, p1.y / 3.0 + (2.0 / 3.0) * c.y),
-                PointD(p2.x / 3.0 + (2.0 / 3.0) * c.x, p2.y / 3.0 + (2.0 / 3.0) * c.y),
-                PointD(p2.x, p2.y)
+                PointF(p1.x / 3.0f + (2.0f / 3.0f) * c.x, p1.y / 3.0f + (2.0f / 3.0f) * c.y),
+                PointF(p2.x / 3.0f + (2.0f / 3.0f) * c.x, p2.y / 3.0f + (2.0f / 3.0f) * c.y),
+                PointF(p2.x, p2.y)
             )
         }
 
@@ -96,7 +97,7 @@ class Command(
          * @param type command type
          * @param points points object as arguments
          */
-        fun fromPoints(type: Char, vararg points: PointD): Command {
+        fun fromPoints(type: Char, vararg points: PointF): Command {
             // use the spread operator *, to send the varargs
             return Command(type, *points)
         }
@@ -105,9 +106,9 @@ class Command(
          * Generate command from coordinates, passed as multiple arguments instead of
          * array list.
          */
-        fun fromCoordinates(type: Char, vararg coordinates: Double): Command {
+        fun fromCoordinates(type: Char, vararg coordinates: Float): Command {
             // use the spread operator *, to send the varargs
-            return Command(type, coordinates.toCollection(ArrayList<Double>()))
+            return Command(type, coordinates.toCollection(ArrayList<Float>()))
         }
 
         /**
@@ -122,7 +123,7 @@ class Command(
          * Get the coordinates, the values after the type
          * @param commandString string containing the path data
          */
-        private fun generateCoordinates(commandString: String): ArrayList<Double> {
+        private fun generateCoordinates(commandString: String): ArrayList<Float> {
 
             val type = commandString[0]
 
@@ -143,12 +144,12 @@ class Command(
          * and return them as a double array
          * @param raw raw string containing double values
          */
-         fun parseIntsAndFloats(raw: String): ArrayList<Double> {
-            val listBuffer = ArrayList<Double>()
+        fun parseIntsAndFloats(raw: String): ArrayList<Float> {
+            val listBuffer = ArrayList<Float>()
             val p = Pattern.compile("[-]?[0-9]*\\.?[0-9]+")
             val m: Matcher = p.matcher(raw)
             while (m.find()) {
-                listBuffer.add(m.group().toDouble())
+                listBuffer.add(m.group().toFloat())
             }
             return listBuffer
         }
@@ -213,7 +214,7 @@ class Command(
     /**
      * Add coordinates to the array with coordinates
      */
-    fun addCoordinates(vararg coordinates: Double) {
+    fun addCoordinates(vararg coordinates: Float) {
         for (coordinate in coordinates) {
             this.coordinates.add(coordinate)
         }

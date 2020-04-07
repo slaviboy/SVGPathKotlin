@@ -1,15 +1,11 @@
 package com.slaviboy.svgpathexample
 
 import android.content.Context
-import android.graphics.Canvas
-import android.graphics.Color
-import android.graphics.Paint
+import android.graphics.*
 import android.util.AttributeSet
 import android.util.Log
 import android.view.View
 import android.view.ViewTreeObserver
-import com.slaviboy.svgpath.Bound
-import com.slaviboy.svgpath.PointD
 import com.slaviboy.svgpath.SvgPath
 import com.slaviboy.svgpath.SvgPathGroup
 
@@ -39,8 +35,8 @@ class SvgPathGroupView : View {
         defStyleAttr
     )
 
-    private var bound: Bound
-    private val center: PointD
+    private var bound: RectF
+    private val center: PointF
     private var svgPathGroup: SvgPathGroup
     private val paint = Paint().apply {
         isAntiAlias = true
@@ -79,15 +75,15 @@ class SvgPathGroupView : View {
             "M2,2 Q5,2 5,5 T8,8"
         )
             .translateEach(
-                -8.0, 0.0,
-                0.0, 0.0,
-                8.0, 0.0,
-                -8.0, 8.0,
-                0.0, 8.0,
-                8.0, 8.0,
-                -8.0, 16.0,
-                0.0, 16.0,
-                8.0, 16.0
+                -8.0f, 0.0f,
+                0.0f, 0.0f,
+                8.0f, 0.0f,
+                -8.0f, 8.0f,
+                0.0f, 8.0f,
+                8.0f, 8.0f,
+                -8.0f, 16.0f,
+                0.0f, 16.0f,
+                8.0f, 16.0f
             )
 
         bound = svgPathGroup.bound
@@ -95,11 +91,11 @@ class SvgPathGroupView : View {
 
         svgPathGroup
             .translate(-center.x, -center.y)
-            .scale(15.0)
-            //.rotate(45.0)
+            .scale(15.0f)
+            //.rotate(45.0f)
             .translate(center.x, center.y)
             .strokeStyle(Color.BLUE)
-            .strokeWidth(10.0)
+            .strokeWidth(10.0f)
             .strokeCap("round")
             .strokeJoin("round")
 

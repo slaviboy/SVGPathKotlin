@@ -1,9 +1,6 @@
 package com.slaviboy.svgpath
 
-import android.graphics.Canvas
-import android.graphics.Color
-import android.graphics.Paint
-import android.graphics.Path
+import android.graphics.*
 import android.util.Log
 import androidx.annotation.Nullable
 import com.slaviboy.svgpath.Command.Companion.TYPE_M
@@ -37,32 +34,32 @@ import kotlin.collections.ArrayList
  */
 class SvgPath(var data: String) {
 
-    private var initialPathCommands: ArrayList<Command>          // the initial path commands that are set from the data string
-    private var pathCommands: ArrayList<Command>                 // the initial path commands that are normalized(converted to C commands, that are draw with cubicTo curve)
-    private var savedPathProperties: ArrayList<PathProperties>   // array queue with all saved path properties
-    private var renderProperties: RenderProperties               // rendered properties for the path
+    var initialPathCommands: ArrayList<Command>                  // the initial path commands that are set from the data string
+    var pathCommands: ArrayList<Command>                         // the initial path commands that are normalized(converted to C commands, that are draw with cubicTo curve)
+    var savedPathProperties: ArrayList<PathProperties>           // array queue with all saved path properties
+    var renderProperties: RenderProperties                       // rendered properties for the path
     private var onDrawListener: (                                // reference to the callback for the onDraw
         (canvas: Canvas, paint: Paint, path: Path) -> Unit
     )? = null
 
     // the center point of the path
-    var center: PointD = PointD()
+    var center: PointF = PointF()
         get() {
             val b = bound
-            field = PointD((b.left + b.right) / 2.0, (b.top + b.bottom) / 2.0)
+            field = PointF((b.left + b.right) / 2.0f, (b.top + b.bottom) / 2.0f)
             return field
         }
 
     // the bound surronding the path
-    var bound: Bound = Bound()
+    var bound: RectF = RectF()
         get() {
-            var boundsOut = Bound()
+            var boundsOut = RectF()
             if (pathCommands.size > 0) {
-                val bounds = Bound(
-                    Double.POSITIVE_INFINITY,
-                    Double.POSITIVE_INFINITY,
-                    Double.NEGATIVE_INFINITY,
-                    Double.NEGATIVE_INFINITY
+                val bounds = RectF(
+                    Float.POSITIVE_INFINITY,
+                    Float.POSITIVE_INFINITY,
+                    Float.NEGATIVE_INFINITY,
+                    Float.NEGATIVE_INFINITY
                 )
 
                 // loop through all commands and set the min and max values
@@ -138,7 +135,7 @@ class SvgPath(var data: String) {
      */
     fun transform(matrix: Matrix): SvgPath {
 
-        bound = Bound()
+        bound = RectF()
         pathCommands.forEach {
 
             // apply the transformation for each point
@@ -150,47 +147,47 @@ class SvgPath(var data: String) {
     }
 
 
-    fun rotate(degree: Double): SvgPath {
+    fun rotate(degree: Float): SvgPath {
         val matrix = Matrix().rotate(degree)
         return transform(matrix)
     }
 
-    fun translate(x: Double = 0.0, y: Double = 0.0): SvgPath {
+    fun translate(x: Float = 0.0f, y: Float = 0.0f): SvgPath {
         val matrix = Matrix().translate(x, y)
         return transform(matrix)
     }
 
-    fun translate(xy: Double = 0.0): SvgPath {
+    fun translate(xy: Float = 0.0f): SvgPath {
         return translate(xy, xy)
     }
 
-    fun translate(xy: PointD = PointD()): SvgPath {
+    fun translate(xy: PointF = PointF()): SvgPath {
         return translate(xy.x, xy.y)
     }
 
-    fun scale(x: Double = 0.0, y: Double = 0.0): SvgPath {
+    fun scale(x: Float = 0.0f, y: Float = 0.0f): SvgPath {
         val matrix = Matrix().scale(x, y)
         return transform(matrix)
     }
 
-    fun scale(xy: Double = 0.0): SvgPath {
+    fun scale(xy: Float = 0.0f): SvgPath {
         return scale(xy, xy)
     }
 
-    fun scale(xy: PointD = PointD()): SvgPath {
+    fun scale(xy: PointF = PointF()): SvgPath {
         return scale(xy.x, xy.y)
     }
 
-    fun skew(degX: Double = 0.0, degY: Double = 0.0): SvgPath {
+    fun skew(degX: Float = 0.0f, degY: Float = 0.0f): SvgPath {
         val matrix = Matrix().skew(degX, degY)
         return transform(matrix)
     }
 
-    fun skew(degXY: Double = 0.0): SvgPath {
+    fun skew(degXY: Float = 0.0f): SvgPath {
         return skew(degXY, degXY)
     }
 
-    fun skew(degXY: PointD = PointD()): SvgPath {
+    fun skew(degXY: PointF = PointF()): SvgPath {
         return skew(degXY.x, degXY.y)
     }
 
@@ -209,7 +206,7 @@ class SvgPath(var data: String) {
         return transform(matrix)
     }
 
-    fun opacity(opacity: Double): SvgPath {
+    fun opacity(opacity: Float): SvgPath {
         renderProperties.opacity = opacity
         return this
     }
@@ -224,7 +221,7 @@ class SvgPath(var data: String) {
         return this
     }
 
-    fun strokeWidth(value: Double): SvgPath {
+    fun strokeWidth(value: Float): SvgPath {
         renderProperties.strokeWidth = value
         return this
     }
@@ -346,6 +343,19 @@ class SvgPath(var data: String) {
             }
             canvas.drawPath(path, paint)
         }
+    }
+
+    fun getCubicBezierCurvePoints(): ArrayList<ArrayList<PointF>> {
+
+        val array = ArrayList<ArrayList<PointF>>()
+        pathCommands.forEach {
+            array.add(it.points)
+        }
+        return array
+    }
+
+    fun RectF.clone(): RectF {
+        return RectF(left, top, right, bottom)
     }
 
     /**

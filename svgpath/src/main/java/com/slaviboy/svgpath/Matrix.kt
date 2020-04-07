@@ -1,5 +1,7 @@
 package com.slaviboy.svgpath
 
+import android.graphics.PointF
+
 // Copyright (C) 2020 Stanislav Georgiev
 //  https://github.com/slaviboy
 //
@@ -25,9 +27,9 @@ package com.slaviboy.svgpath
  * (1, 0, 0)
  * (0, 1, 0)
  */
-class Matrix(var m: ArrayList<Double> = arrayListOf(1.0, 0.0, 0.0, 1.0, 0.0, 0.0)) {
+class Matrix(var m: ArrayList<Float> = arrayListOf(1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f)) {
 
-    constructor(vararg mElements: Double) : this(mElements.toCollection(ArrayList<Double>()))
+    constructor(vararg mElements: Float) : this(mElements.toCollection(ArrayList<Float>()))
 
     companion object {
 
@@ -35,21 +37,21 @@ class Matrix(var m: ArrayList<Double> = arrayListOf(1.0, 0.0, 0.0, 1.0, 0.0, 0.0
          * Set as the horizontal flip matrix
          */
         fun flipHorizontal(): Matrix {
-            return Matrix(-1.0, 0.0, 0.0, 1.0, 0.0, 0.0)
+            return Matrix(-1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f)
         }
 
         /**
          * Set as rhe vertical flip matrix
          */
         fun flipVertical(): Matrix {
-            return Matrix(1.0, 0.0, 0.0, -1.0, 0.0, 0.0)
+            return Matrix(1.0f, 0.0f, 0.0f, -1.0f, 0.0f, 0.0f)
         }
 
         /**
          * Set as the central flip matrix
          */
         fun flipCentral(): Matrix {
-            return Matrix(-1.0, 0.0, 0.0, -1.0, 0.0, 0.0)
+            return Matrix(-1.0f, 0.0f, 0.0f, -1.0f, 0.0f, 0.0f)
         }
 
     }
@@ -59,7 +61,7 @@ class Matrix(var m: ArrayList<Double> = arrayListOf(1.0, 0.0, 0.0, 1.0, 0.0, 0.0
      * return it
      */
     fun reset(): Matrix {
-        m = arrayListOf(1.0, 0.0, 0.0, 1.0, 0.0, 0.00)
+        m = arrayListOf(1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f)
         return this
     }
 
@@ -68,7 +70,7 @@ class Matrix(var m: ArrayList<Double> = arrayListOf(1.0, 0.0, 0.0, 1.0, 0.0, 0.0
      * same size.
      * @param m the second matrix
      */
-    fun multiply(m: ArrayList<Double>): Matrix {
+    fun multiply(m: ArrayList<Float>): Matrix {
         val m1 = this.m
         val m2 = m
 
@@ -94,8 +96,8 @@ class Matrix(var m: ArrayList<Double> = arrayListOf(1.0, 0.0, 0.0, 1.0, 0.0, 0.0
         return multiply(matrix.m)
     }
 
-    fun multiply(vararg m: Double): Matrix {
-        return multiply(m.toCollection(ArrayList<Double>()))
+    fun multiply(vararg m: Float): Matrix {
+        return multiply(m.toCollection(ArrayList<Float>()))
     }
 
     /**
@@ -131,11 +133,11 @@ class Matrix(var m: ArrayList<Double> = arrayListOf(1.0, 0.0, 0.0, 1.0, 0.0, 0.0
      * (sin,  cos, 0)
      * @param degree rotational degree
      */
-    fun rotate(degree: Double): Matrix {
+    fun rotate(degree: Float): Matrix {
         val rad = degree * Math.PI / 180
-        val c = Math.cos(rad)
-        val s = Math.sin(rad)
-        return this.multiply(c, s, -s, c, 0.0, 0.0)
+        val c = Math.cos(rad).toFloat()
+        val s = Math.sin(rad).toFloat()
+        return this.multiply(c, s, -s, c, 0.0f, 0.0f)
     }
 
     /**
@@ -146,11 +148,11 @@ class Matrix(var m: ArrayList<Double> = arrayListOf(1.0, 0.0, 0.0, 1.0, 0.0, 0.0
      * @param x translation value for horizontal direction
      * @param y translation value for vertical direction
      */
-    fun translate(x: Double = 0.0, y: Double = 0.0): Matrix {
-        return this.multiply(1.0, 0.0, 0.0, 1.0, x, y)
+    fun translate(x: Float = 0.0f, y: Float = 0.0f): Matrix {
+        return this.multiply(1.0f, 0.0f, 0.0f, 1.0f, x, y)
     }
 
-    fun translate(xy: PointD = PointD()): Matrix {
+    fun translate(xy: PointF = PointF()): Matrix {
         return this.translate(xy.x, xy.y)
     }
 
@@ -162,18 +164,18 @@ class Matrix(var m: ArrayList<Double> = arrayListOf(1.0, 0.0, 0.0, 1.0, 0.0, 0.0
      * @param degreeX skew value for horizontal direction
      * @param degreeY skew value for vertical direction
      */
-    fun skew(degreeX: Double = 0.0, degreeY: Double = 0.0): Matrix {
+    fun skew(degreeX: Float = 0.0f, degreeY: Float = 0.0f): Matrix {
 
         // convert to radians
         val radX = degreeX * Math.PI / 180
         val radY = degreeY * Math.PI / 180
 
-        val tx = Math.tan(radX)
-        val ty = Math.tan(radY)
-        return this.multiply(1.0, ty, tx, 1.0, 0.0, 0.0)
+        val tx = Math.tan(radX).toFloat()
+        val ty = Math.tan(radY).toFloat()
+        return this.multiply(1.0f, ty, tx, 1.0f, 0.0f, 0.0f)
     }
 
-    fun skew(degreeXY: PointD = PointD()): Matrix {
+    fun skew(degreeXY: PointF = PointF()): Matrix {
         return this.skew(degreeXY.x, degreeXY.y)
     }
 
@@ -185,11 +187,11 @@ class Matrix(var m: ArrayList<Double> = arrayListOf(1.0, 0.0, 0.0, 1.0, 0.0, 0.0
      * @param x scale value for horizontal direction
      * @param y scale value for vertical direction
      */
-    fun scale(x: Double = 0.0, y: Double = 0.0): Matrix {
-        return this.multiply(x, 0.0, 0.0, y, 0.0, 0.0)
+    fun scale(x: Float = 0.0f, y: Float = 0.0f): Matrix {
+        return this.multiply(x, 0.0f, 0.0f, y, 0.0f, 0.0f)
     }
 
-    fun scale(xy: PointD = PointD()): Matrix {
+    fun scale(xy: PointF = PointF()): Matrix {
         return this.scale(xy.x, xy.y)
     }
 
@@ -197,25 +199,25 @@ class Matrix(var m: ArrayList<Double> = arrayListOf(1.0, 0.0, 0.0, 1.0, 0.0, 0.0
      * Apply the transformation on point coordinates and return the
      * result point with all applied transformations.
      */
-    fun transformPoint(x: Double = 0.0, y: Double = 0.0): PointD {
-        return PointD(
+    fun transformPoint(x: Float = 0.0f, y: Float = 0.0f): PointF {
+        return PointF(
             x * this.m[0] + y * this.m[2] + this.m[4],
             x * this.m[1] + y * this.m[3] + this.m[5]
         )
     }
 
-    fun transformPoint(p: PointD): PointD {
+    fun transformPoint(p: PointF): PointF {
         return transformPoint(p.x, p.y)
     }
 
-    fun transformVector(x: Double = 0.0, y: Double = 0.0): PointD {
-        return PointD(
+    fun transformVector(x: Float = 0.0f, y: Float = 0.0f): PointF {
+        return PointF(
             x * this.m[0] + y * this.m[2],
             x * this.m[1] + y * this.m[3]
         )
     }
 
-    fun transformVector(xy: PointD = PointD()): PointD {
+    fun transformVector(xy: PointF = PointF()): PointF {
         return transformVector(xy.x, xy.y)
     }
 
