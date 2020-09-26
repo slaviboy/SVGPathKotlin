@@ -1,4 +1,20 @@
-package com.slaviboy.svgpathexample
+/*
+* Copyright (C) 2020 Stanislav Georgiev
+* https://github.com/slaviboy
+*
+* Licensed under the Apache License, Version 2.0 (the "License");
+* you may not use this file except in compliance with the License.
+* You may obtain a copy of the License at
+*
+*      http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
+*/
+package com.slaviboy.svgpathexample.animation
 
 import android.animation.Animator
 import android.animation.AnimatorSet
@@ -6,25 +22,12 @@ import android.animation.ObjectAnimator
 import android.content.Context
 import android.graphics.*
 import android.util.AttributeSet
-import android.view.View 
+import android.view.View
+import com.slaviboy.graphics.PointD
 import com.slaviboy.svgpath.SvgPathGroup
+import com.slaviboy.svgpathexample.R
+import com.slaviboy.svgpathexample.views.SvgPathView.Companion.afterMeasured
 import kotlin.collections.ArrayList
-
-// Copyright (C) 2020 Stanislav Georgiev
-//  https://github.com/slaviboy
-//
-//	This program is free software: you can redistribute it and/or modify
-//	it under the terms of the GNU Affero General Public License as
-//	published by the Free Software Foundation, either version 3 of the
-//	License, or (at your option) any later version.
-//
-//	This program is distributed in the hope that it will be useful,
-//	but WITHOUT ANY WARRANTY; without even the implied warranty of
-//	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//	GNU Affero General Public License for more details.
-//
-//	You should have received a copy of the GNU Affero General Public License
-//	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
  * Simple path view that draws Michael Jordan logo and signature,
@@ -36,7 +39,7 @@ class JordanView : View, View.OnClickListener {
     constructor(context: Context?, attrs: AttributeSet?) : super(context, attrs) {}
     constructor(context: Context?, attrs: AttributeSet?, defStyleAttr: Int) : super(context, attrs, defStyleAttr) {}
 
-    private val center: PointF                                   // center of the path group
+    private val center: PointD                                   // center of the path group
     private var svgPathGroup: SvgPathGroup                       // the path group with all svg paths
     private var paths: ArrayList<Path>                           // all graphic paths generated from the svg paths
     private val paints: ArrayList<CustomPaint> = ArrayList()     // each path has its own custom paint object, that is used for the animation
@@ -52,12 +55,16 @@ class JordanView : View, View.OnClickListener {
             resources.getString(R.string.jordan_signature_surname)
         )
 
-        center = svgPathGroup.center
-        svgPathGroup
-            .translate(-center.x, -center.y)
+        center = svgPathGroup.bound.center()
+        svgPathGroup.matrix.apply {
+            //postTranslate(-center.x, -center.y)
+        }
 
         paths = svgPathGroup.generatePaths()
-        animators = MutableList<Animator>(paths.size) { ObjectAnimator() }
+        animators = MutableList<Animator>(paths.size) {
+            ObjectAnimator()
+        }
+
         for (i in paths.indices) {
 
             // set paint properties
@@ -89,6 +96,24 @@ class JordanView : View, View.OnClickListener {
             paints.add(paint)
         }
 
+        this.afterMeasured {
+
+            // get bound values for the group boundary box
+            svgPathGroup.isUpdated = true
+            val bound = svgPathGroup.bound
+            val boundCenter = bound.center()
+            val boundWidth = bound.width()
+
+            // apply transformations to the whole group
+            svgPathGroup.matrix.apply {
+                postTranslate(-boundCenter.x, -boundCenter.y)
+                //postRotate(45.0)
+                //postSkew(0.5, 0.0)
+                postScale(width / (boundWidth * 2), width / (boundWidth * 2))
+                postTranslate(width / 2.0 + width / 40.0, height / 2.0)
+            }
+        }
+
         playAnimation()
         setOnClickListener(this)
     }
@@ -111,17 +136,17 @@ class JordanView : View, View.OnClickListener {
         }
     }
 
-    override fun onDraw(canvas: Canvas?) {
-        canvas?.drawColor(Color.WHITE)
+    override fun onDraw(canvas: Canvas) {
+
+        canvas.drawColor(Color.WHITE)
 
         // translate to center and down scale
-        canvas?.save()
-        canvas?.translate(width / 2.0f, height / 2.0f)
-        canvas?.scale(0.35f, 0.35f)
+        canvas.save()
+        canvas.setMatrix(svgPathGroup.matrix.matrix)
 
         for (i in paths.indices) {
-            canvas?.drawPath(paths[i], paints[i])
+            canvas.drawPath(paths[i], paints[i])
         }
-        canvas?.restore()
+        canvas.restore()
     }
 }

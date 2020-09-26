@@ -1,139 +1,203 @@
+/*
+* Copyright (C) 2020 Stanislav Georgiev
+* https://github.com/slaviboy
+*
+* Licensed under the Apache License, Version 2.0 (the "License");
+* you may not use this file except in compliance with the License.
+* You may obtain a copy of the License at
+*
+*      http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
+*/
 package com.slaviboy.svgpath
 
-import android.graphics.PointF
-import android.util.Log
+import com.slaviboy.graphics.MatrixD
+import com.slaviboy.graphics.PointD
 import java.lang.IllegalArgumentException
 import java.util.regex.Matcher
 import java.util.regex.Pattern
 
-// Copyright (C) 2020 Stanislav Georgiev
-//  https://github.com/slaviboy
-//
-//	This program is free software: you can redistribute it and/or modify
-//	it under the terms of the GNU Affero General Public License as
-//	published by the Free Software Foundation, either version 3 of the
-//	License, or (at your option) any later version.
-//
-//	This program is distributed in the hope that it will be useful,
-//	but WITHOUT ANY WARRANTY; without even the implied warranty of
-//	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//	GNU Affero General Public License for more details.
-//
-//	You should have received a copy of the GNU Affero General Public License
-//	along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
 /**
  * Command object for each command type from the svg path data
- * @param type command type
- * @param coordinates array with coordinates
- * @param points array with points transformed from original command to 'C'
- * @example
- * Command('M', arrayListOf(23.6,-12.4))
- *      => M is the type (move to)
- *      => 23.6,-12.4 are the coordinates x and y for the move to command
+ * @param type command type of the path 'M', 'H', 'S',...
+ * @param coordinates coordinates for the command, used by initial, absolutized and normalized coordinates
+ * @example Command('M'.toInt(), doubleArrayOf(23.6,-12.4))
+ *    => M is the type (move to)
+ *    => 23.6,-12.4 are the coordinates x and y for the move to command
  */
-class Command(
-    var type: Char = TYPE_M.toChar(),
-    var coordinates: ArrayList<Float> = ArrayList(),
-    var points: ArrayList<PointF> = ArrayList()
+data class Command(
+    var type: Int = TYPE_M,
+    var coordinates: DoubleArray = doubleArrayOf()
 ) {
 
     /**
      * Generate command by svg path data string, for the specific command
-     * @param commandString string with the command from the path data
-     *
-     * @example
-     * Command("M23.6,-12.4")
-     *      => M is the type (move to)
-     *      => 23.6,-12.4 are the coordinates that are converted to double array list
+     * @param data raw path data as string
+     * @example Command("M23.6,-12.4")
+     *    => M is the type (move to)
+     *    => 23.6,-12.4 are the coordinates that are converted to double array list
      */
-    constructor(commandString: String) : this(
-        generateType(commandString),
-        generateCoordinates(commandString)
+    constructor(data: String) : this(
+        generateType(data),
+        generateCoordinates(data)
     )
 
     /**
-     * Usually used for command with already converted points, from the previous command
-     * type to 'C' command type. But since the 'M' command can also be used the
-     * char type is acquires.
-     * @param type command type 'M' or 'C'
-     * @param points array with points for the path command
+     * Transform the existing coordinates using the transformation matrix that is passed
+     * as argument and return array with transformed coordinates.
+     * @param matrix transformation matrix, that will apply the transformation to the existing coordinates
      */
-    constructor(type: Char, vararg points: PointF) : this(type) {
-        this.points = points.toCollection(ArrayList())
+    fun transform(matrix: MatrixD): DoubleArray {
+        val transformedCoordinates = DoubleArray(coordinates.size)
+        matrix.mapPoints(transformedCoordinates, coordinates)
+        return transformedCoordinates
+    }
+
+    /**
+     * Clone command object
+     */
+    fun clone(): Command {
+        return Command(type, coordinates.clone())
+    }
+
+    /**
+     * Method that return values of the available properties as string.
+     */
+    override fun toString(): String {
+        return "Command(type: $type, coordinates: ${coordinates.joinToString(",")})"
+    }
+
+    /**
+     * Method used by the data class, to check if two object from the same class have
+     * equal values for the public properties.
+     */
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as Command
+
+        if (type != other.type) return false
+        if (!coordinates.contentEquals(other.coordinates)) return false
+
+        return true
+    }
+
+    /**
+     * Method used by the data class, to check if two object from the same class have
+     * equal values for the public properties.
+     */
+    override fun hashCode(): Int {
+        var result = type
+        result = 31 * result + coordinates.contentHashCode()
+        return result
     }
 
     companion object {
 
         /**
+         * Extension function that allows for array list with points to be converted to
+         * DoubleArray.
+         */
+        fun Array<PointD>.toDoubleArray(): DoubleArray {
+            val array = DoubleArray(this.size * 2)
+            for (i in this.indices) {
+                array[i * 2] = this[i].x
+                array[i * 2 + 1] = this[i].y
+            }
+            return array
+        }
+
+        /**
          * Generate 'C' command from line, by two given points, usually used for
          * commands like: lineTo, horizontalLintTo...
-         * @param p1 first point
-         * @param p2 second point
+         * @param x1 x coordinate from the first point of the line
+         * @param y1 y coordinate from the first point of the line
+         * @param x2 x coordinate from the second point of the line
+         * @param y2 y coordinate from the second point of the line
          */
-        fun fromLine(p1: PointF, p2: PointF): Command {
-            return Command('C', PointF(p1.x, p1.y), PointF(p2.x, p2.y), PointF(p2.x, p2.y))
+        fun fromLine(x1: Double, y1: Double, x2: Double, y2: Double): Command {
+            return fromCoordinates(TYPE_C, x1, y1, x2, y2, x2, y2)
         }
 
         /**
          * Generate 'C" command from quadratic points, usually used for
          * quadratic bezier curve
-         * @param p1 start point
-         * @param c control point
-         * @param p2 end point
+         * @param x1 start point x coordinate
+         * @param y1 start point y coordinate
+         * @param x control point x coordinate
+         * @param y control point y coordinate
+         * @param x2 end point x coordinate
+         * @param y2 end point y coordinate
          */
-        fun fromQuadratic(p1: PointF, c: PointF, p2: PointF): Command {
-            return Command(
-                'C',
-                PointF(p1.x / 3.0f + (2.0f / 3.0f) * c.x, p1.y / 3.0f + (2.0f / 3.0f) * c.y),
-                PointF(p2.x / 3.0f + (2.0f / 3.0f) * c.x, p2.y / 3.0f + (2.0f / 3.0f) * c.y),
-                PointF(p2.x, p2.y)
+        fun fromQuadratic(x1: Double, y1: Double, x: Double, y: Double, x2: Double, y2: Double): Command {
+            return fromCoordinates(
+                TYPE_C,
+                x1 / 3.0f + (2.0f / 3.0f) * x,
+                y1 / 3.0f + (2.0f / 3.0f) * y,
+                x2 / 3.0f + (2.0f / 3.0f) * x,
+                y2 / 3.0f + (2.0f / 3.0f) * y,
+                x2, y2
             )
         }
 
         /**
-         * Generate command from points, passed as multiple arguments instead of
-         * array list.
-         * @param type command type
-         * @param points points object as arguments
+         * Generate command from coordinates, passed as multiple arguments instead of array.
+         * @param type command type as integer representation of the char 'M', 'C',...
+         * @param coordinates initial coordinates passes as varargs
          */
-        fun fromPoints(type: Char, vararg points: PointF): Command {
-            // use the spread operator *, to send the varargs
-            return Command(type, *points)
+        fun fromCoordinates(type: Int, vararg coordinates: Double): Command {
+            return Command(type = type, coordinates = coordinates)
         }
 
         /**
-         * Generate command from coordinates, passed as multiple arguments instead of
-         * array list.
+         * Generate command from points, passed as multiple arguments instead of array.
+         * @param type command type as integer representation of the char 'M', 'C',...
+         * @param points points containing the coordinates for the command passes as varargs
          */
-        fun fromCoordinates(type: Char, vararg coordinates: Float): Command {
-            // use the spread operator *, to send the varargs
-            return Command(type, coordinates.toCollection(ArrayList<Float>()))
+        fun fromPoints(type: Int, vararg points: PointD): Command {
+            return fromCoordinates(type, *(points as Array<PointD>).toDoubleArray())
         }
 
         /**
-         * Get the type, its the first character from the command string
+         * Get the coordinates for each command in given array list as DoubleArray
+         * @param commands array list containing the commands
+         */
+        fun getCoordinates(commands: ArrayList<Command>): ArrayList<DoubleArray> {
+            val coordinates = ArrayList<DoubleArray>()
+            commands.forEach {
+                coordinates.add(it.coordinates)
+            }
+            return coordinates
+        }
+
+        /**
+         * Get the type, its always the first character from the command string
          * @param commandString string containing the path data
          */
-        private fun generateType(commandString: String): Char {
-            return commandString[0]
+        internal fun generateType(commandString: String): Int {
+            return commandString[0].toInt()
         }
 
         /**
          * Get the coordinates, the values after the type
          * @param commandString string containing the path data
          */
-        private fun generateCoordinates(commandString: String): ArrayList<Float> {
+        internal fun generateCoordinates(commandString: String): DoubleArray {
 
-            val type = commandString[0]
+            val type = commandString[0].toUpperCase().toInt()
 
             // get all coordinates as double array list
-            val coordinates =
-                parseIntsAndFloats(commandString.subSequence(1, commandString.length).toString())
+            val coordinates = parseIntsAndDoubles(commandString.subSequence(1, commandString.length).toString())
 
             // check if the expected number of coordinates for the command is acquired
-            if (coordinates.size != numberOfCoordinates[type.toLowerCase()]) {
-                throw IllegalArgumentException("Command with type: ${type}, does not match the expected number of parameters: ${numberOfCoordinates[type.toLowerCase()]}")
+            if (coordinates.size != numberOfCoordinates[type]) {
+                throw IllegalArgumentException("Command with type: ${type}, does not match the expected number of parameters: ${numberOfCoordinates[type]}")
             }
 
             return coordinates
@@ -144,94 +208,70 @@ class Command(
          * and return them as a double array
          * @param raw raw string containing double values
          */
-        fun parseIntsAndFloats(raw: String): ArrayList<Float> {
-            val listBuffer = ArrayList<Float>()
+        fun parseIntsAndDoubles(raw: String): DoubleArray {
+            val listBuffer = ArrayList<Double>()
             val p = Pattern.compile("[-]?[0-9]*\\.?[0-9]+")
             val m: Matcher = p.matcher(raw)
             while (m.find()) {
-                listBuffer.add(m.group().toFloat())
+                listBuffer.add(m.group().toDouble())
             }
-            return listBuffer
+            return listBuffer.toDoubleArray()
         }
 
-        // expected number of coordinates for each command type
-        val numberOfCoordinates = mapOf(
-            'a' to 7,
-            'c' to 6,
-            'h' to 1,
-            'l' to 2,
-            'm' to 2,
-            'q' to 4,
-            's' to 4,
-            't' to 2,
-            'v' to 1,
-            'z' to 0
-        )
-
-        val TYPE_UNDEFINED: Int = 0
+        const val TYPE_NONE: Int = ' '.toInt()
 
         // elliptical arc
-        val TYPE_a: Int = 'a'.toInt()
-        val TYPE_A: Int = 'A'.toInt()
+        const val TYPE_a: Int = 'a'.toInt()
+        const val TYPE_A: Int = 'A'.toInt()
 
         // curve to
-        val TYPE_c: Int = 'c'.toInt()
-        val TYPE_C: Int = 'C'.toInt()
+        const val TYPE_c: Int = 'c'.toInt()
+        const val TYPE_C: Int = 'C'.toInt()
 
         // horizontal line to
-        val TYPE_h: Int = 'h'.toInt()
-        val TYPE_H: Int = 'H'.toInt()
+        const val TYPE_h: Int = 'h'.toInt()
+        const val TYPE_H: Int = 'H'.toInt()
 
         // line to
-        val TYPE_l: Int = 'l'.toInt()
-        val TYPE_L: Int = 'L'.toInt()
+        const val TYPE_l: Int = 'l'.toInt()
+        const val TYPE_L: Int = 'L'.toInt()
 
         // move to
-        val TYPE_m: Int = 'm'.toInt()
-        val TYPE_M: Int = 'M'.toInt()
+        const val TYPE_m: Int = 'm'.toInt()
+        const val TYPE_M: Int = 'M'.toInt()
 
         // quadratic Bézier curve to
-        val TYPE_q: Int = 'q'.toInt()
-        val TYPE_Q: Int = 'Q'.toInt()
+        const val TYPE_q: Int = 'q'.toInt()
+        const val TYPE_Q: Int = 'Q'.toInt()
 
         // shorthand/smooth curve to
-        val TYPE_s: Int = 's'.toInt()
-        val TYPE_S: Int = 'S'.toInt()
+        const val TYPE_s: Int = 's'.toInt()
+        const val TYPE_S: Int = 'S'.toInt()
 
         // shorthand/smooth quadratic Bézier curve to
-        val TYPE_t: Int = 't'.toInt()
-        val TYPE_T: Int = 'T'.toInt()
+        const val TYPE_t: Int = 't'.toInt()
+        const val TYPE_T: Int = 'T'.toInt()
 
         // vertical line to
-        val TYPE_v: Int = 'v'.toInt()
-        val TYPE_V: Int = 'V'.toInt()
+        const val TYPE_v: Int = 'v'.toInt()
+        const val TYPE_V: Int = 'V'.toInt()
 
         // close path
-        val TYPE_z: Int = 'z'.toInt()
-        val TYPE_Z: Int = 'Z'.toInt()
-    }
+        const val TYPE_z: Int = 'z'.toInt()
+        const val TYPE_Z: Int = 'Z'.toInt()
 
-    /**
-     * Add coordinates to the array with coordinates
-     */
-    fun addCoordinates(vararg coordinates: Float) {
-        for (coordinate in coordinates) {
-            this.coordinates.add(coordinate)
-        }
-    }
-
-    /**
-     * Clone command object
-     */
-    fun clone(): Command {
-        return Command(type, ArrayList(coordinates), ArrayList(points))
-    }
-
-    override fun toString(): String {
-        return "Command(type: $type coordinates: ${coordinates.joinToString(",")})"
-    }
-
-    fun compactString(): String {
-        return "${type},${coordinates.joinToString(",")}"
+        // expected number of coordinates for each command type
+        val numberOfCoordinates: Map<Int, Int> = mapOf(
+            TYPE_A to 7,
+            TYPE_C to 6,
+            TYPE_H to 1,
+            TYPE_L to 2,
+            TYPE_M to 2,
+            TYPE_Q to 4,
+            TYPE_S to 4,
+            TYPE_T to 2,
+            TYPE_V to 1,
+            TYPE_Z to 0
+        )
     }
 }

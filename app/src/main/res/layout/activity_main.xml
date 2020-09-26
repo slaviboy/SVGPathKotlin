@@ -6,20 +6,20 @@
     android:layout_height="match_parent"
     tools:context=".MainActivity">
 
-   <!-- <com.slaviboy.svgpathexample.SvgPathView
+   <!-- <com.slaviboy.svgpathexample.views.SvgPathView
         android:layout_width="match_parent"
         android:layout_height="match_parent" />-->
 
-   <!-- <com.slaviboy.svgpathexample.SvgPathGroupView
+    <!--<com.slaviboy.svgpathexample.views.SvgPathGroupView
         android:layout_width="match_parent"
         android:layout_height="match_parent" />-->
 
-    <com.slaviboy.svgpathexample.JordanView
+    <!--<com.slaviboy.svgpathexample.views.SVGPathGroupRandomView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />-->
+
+    <com.slaviboy.svgpathexample.animation.JordanView
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
-
-    <!--<com.slaviboy.svgpathexample.SVGPathGroupCustomView
-        android:layout_width="match_parent"
-        android:layout_height="match_parent" />-->
 
 </androidx.constraintlayout.widget.ConstraintLayout>

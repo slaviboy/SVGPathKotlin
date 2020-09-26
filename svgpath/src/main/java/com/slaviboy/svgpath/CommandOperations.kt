@@ -1,25 +1,37 @@
+/*
+* Copyright (C) 2020 Stanislav Georgiev
+* https://github.com/slaviboy
+*
+* Licensed under the Apache License, Version 2.0 (the "License");
+* you may not use this file except in compliance with the License.
+* You may obtain a copy of the License at
+*
+*      http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
+*/
 package com.slaviboy.svgpath
 
-import android.graphics.PointF
-import android.util.Log
+import com.slaviboy.graphics.PointD
+import com.slaviboy.svgpath.Command.Companion.TYPE_A
+import com.slaviboy.svgpath.Command.Companion.TYPE_C
+import com.slaviboy.svgpath.Command.Companion.TYPE_H
+import com.slaviboy.svgpath.Command.Companion.TYPE_L
+import com.slaviboy.svgpath.Command.Companion.TYPE_M
+import com.slaviboy.svgpath.Command.Companion.TYPE_Q
+import com.slaviboy.svgpath.Command.Companion.TYPE_S
+import com.slaviboy.svgpath.Command.Companion.TYPE_T
+import com.slaviboy.svgpath.Command.Companion.TYPE_NONE
+import com.slaviboy.svgpath.Command.Companion.TYPE_V
+import com.slaviboy.svgpath.Command.Companion.TYPE_Z
+import com.slaviboy.svgpath.Command.Companion.TYPE_a
+import com.slaviboy.svgpath.Command.Companion.TYPE_h
+import com.slaviboy.svgpath.Command.Companion.TYPE_v
 import com.slaviboy.svgpath.Command.Companion.numberOfCoordinates
-import java.lang.IllegalArgumentException
-
-// Copyright (C) 2020 Stanislav Georgiev
-//  https://github.com/slaviboy
-//
-//	This program is free software: you can redistribute it and/or modify
-//	it under the terms of the GNU Affero General Public License as
-//	published by the Free Software Foundation, either version 3 of the
-//	License, or (at your option) any later version.
-//
-//	This program is distributed in the hope that it will be useful,
-//	but WITHOUT ANY WARRANTY; without even the implied warranty of
-//	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//	GNU Affero General Public License for more details.
-//
-//	You should have received a copy of the GNU Affero General Public License
-//	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
  * Object tha contain methods for the conversion of all types to the 'C' type
@@ -28,18 +40,24 @@ import java.lang.IllegalArgumentException
  */
 object CommandOperations {
 
-    val TAU = (Math.PI * 2.0f).toFloat()
+    internal const val TAU: Double = Math.PI * 2.0
+
+    // temp points used in the conversion, instead of creating new one each time
+    internal val point = PointD()
+    internal val quad = PointD()
+    internal val start = PointD()
+    internal val bezier = PointD()
 
     /**
      * Parse the string data, and separate it to the supposing commands
      * tha are then returned as array list
-     * @param path string containing the path data
+     * @param data string containing the path data
      * @return array list with all corresponding commands
      */
-    fun parse(path: String): ArrayList<Command> {
+    fun parse(data: String): ArrayList<Command> {
 
-        val data = ArrayList<Command>()
-        val splitByLetter = path.split(Regex("(?=[a-zA-Z])"))
+        val commands = ArrayList<Command>()
+        val splitByLetter = data.split(Regex("(?=[a-zA-Z])"))
 
         // for each split string
         for (splitText in splitByLetter) {
@@ -47,43 +65,41 @@ object CommandOperations {
             if (splitText.isNotEmpty()) {
 
                 // ge the supposing type and coordinates
-                val type = splitText[0]
-                val coordinates =
-                    Command.parseIntsAndFloats(splitText.subSequence(1, splitText.length).toString())
+                val type = splitText[0].toInt()
+                val typeUpperCase = splitText[0].toUpperCase().toInt()
+                val coordinates = Command.parseIntsAndDoubles(splitText.subSequence(1, splitText.length).toString())
 
-                if (type.toUpperCase() == 'Z') {
-                    data.add(Command('Z'))
+                if (typeUpperCase == TYPE_Z) {
+                    commands.add(Command(TYPE_Z))
                 } else {
-                    val steps = numberOfCoordinates[type.toLowerCase()]
+                    val steps = numberOfCoordinates[typeUpperCase]
 
                     require(steps != null) {
                         "Unknown svg path type: $type"
                     }
 
-                    require(coordinates.size % steps == 0) {
-                        "Command with type: ${type}, does not match the expected number of parameters: ${numberOfCoordinates[type.toLowerCase()]}"
+                    require(steps > 0 && coordinates.size % steps == 0) {
+                        "Command with type: ${type.toChar()}, does not match the expected number of parameters: ${numberOfCoordinates[typeUpperCase]}"
                     }
 
                     // generate commands by separating the expected number of coordinates for each type
-                    for (i in 0 until coordinates.size step steps) {
-                        data.add(Command(type, ArrayList<Float>(coordinates.subList(i, i + steps))))
+                    for (i in coordinates.indices step steps) {
+                        commands.add(Command(type = type, coordinates = coordinates.copyOfRange(i, i + steps)))
                     }
                 }
             }
         }
-        return data
+        return commands
     }
-
 
     /**
      * Convert from endpoint to center parameterization
      * @return array list {cx, cy, theta1, deltaTheta}
      */
     fun getArcCenter(
-        x1: Float, y1: Float, x2: Float, y2: Float,
-        fa: Float, fs: Float, rx: Float, ry: Float,
-        sinPhi: Float, cosPhi: Float
-    ): ArrayList<Float> {
+        x1: Double, y1: Double, x2: Double, y2: Double, fa: Double, fs: Double,
+        rx: Double, ry: Double, sinPhi: Double, cosPhi: Double
+    ): DoubleArray {
 
         /**
          *  moving an ellipse so origin will be the middle point
@@ -100,13 +116,13 @@ object CommandOperations {
 
         // compute coordinates of the centre of this ellipse (cx', cy') in the new coordinate system.
         var radicant = (rxSq * rySq) - (rxSq * y1pSq) - (rySq * x1pSq)
-        if (radicant < 0.0f) {
+        if (radicant < 0.0) {
             // due to rounding errors it might be e.g. -1.3877787807814457e-17
-            radicant = 0.0f
+            radicant = 0.0
         }
 
         radicant /= (rxSq * y1pSq) + (rySq * x1pSq)
-        radicant = Math.sqrt(radicant.toDouble()).toFloat() * (if (fa == fs) -1 else 1)
+        radicant = Math.sqrt(radicant) * (if (fa == fs) -1 else 1)
 
         val cxp = radicant * rx / ry * y1p
         val cyp = radicant * -ry / rx * x1p
@@ -121,60 +137,58 @@ object CommandOperations {
         val v2x = (-x1p - cxp) / rx
         val v2y = (-y1p - cyp) / ry
 
-        val theta1 = unitVectorAngle(1.0f, 0.0f, v1x, v1y)
+        val theta1 = unitVectorAngle(1.0, 0.0, v1x, v1y)
         var deltaTheta = unitVectorAngle(v1x, v1y, v2x, v2y)
 
-        if (fs == 0.0f && deltaTheta > 0.0f) {
+        if (fs == 0.0 && deltaTheta > 0.0) {
             deltaTheta -= TAU
         }
-        if (fs == 1.0f && deltaTheta < 0.0f) {
+        if (fs == 1.0 && deltaTheta < 0.0) {
             deltaTheta += TAU
         }
 
-        return arrayListOf(cx, cy, theta1, deltaTheta)
+        return doubleArrayOf(cx, cy, theta1, deltaTheta)
     }
-
 
     /**
      *  Calculate an angle between two unit vectors, since we measure angle
      *  between radii of circular arcs, we can use simplified math
      *  (without length normalization)
      */
-    fun unitVectorAngle(ux: Float, uy: Float, vx: Float, vy: Float): Float {
+    fun unitVectorAngle(ux: Double, uy: Double, vx: Double, vy: Double): Double {
         val sign = if (ux * vy - uy * vx < 0.0) -1 else 1
         var dot = ux * vx + uy * vy
 
-        // Add this to work with arbitrary vectors:
+        // add this to work with arbitrary vectors:
         // dot /= Math.sqrt(ux * ux + uy * uy) * Math.sqrt(vx * vx + vy * vy);
         // rounding errors, e.g. -1.0000000000000002 can screw up this
-        if (dot > 1.0f) {
-            dot = 1.0f
+        if (dot > 1.0) {
+            dot = 1.0
         }
-        if (dot < -1.0f) {
-            dot = -1.0f
+        if (dot < -1.0) {
+            dot = -1.0
         }
 
-        return (sign * Math.acos(dot.toDouble())).toFloat()
+        return (sign * Math.acos(dot))
     }
 
-    // approximate one unit arc segment with bézier curves
-    fun approximateUnitArc(theta1: Float, deltaTheta: Float): ArrayList<Float> {
-        val alpha = 4.0f / 3.0f * Math.tan(deltaTheta / 4.0).toFloat()
+    /**
+     * Approximate one unit arc segment with bézier curves
+     */
+    fun approximateUnitArc(theta1: Double, deltaTheta: Double): DoubleArray {
 
-        val x1 = Math.cos(theta1.toDouble()).toFloat()
-        val y1 = Math.sin(theta1.toDouble()).toFloat()
-        val x2 = Math.cos(theta1.toDouble() + deltaTheta).toFloat()
-        val y2 = Math.sin(theta1.toDouble() + deltaTheta).toFloat()
+        val alpha = 4.0 / 3.0 * Math.tan(deltaTheta / 4.0)
 
-        return arrayListOf(
-            x1,
-            y1,
-            x1 - y1 * alpha,
-            y1 + x1 * alpha,
-            x2 + y2 * alpha,
-            y2 - x2 * alpha,
-            x2,
-            y2
+        val x1 = Math.cos(theta1)
+        val y1 = Math.sin(theta1)
+        val x2 = Math.cos(theta1 + deltaTheta)
+        val y2 = Math.sin(theta1 + deltaTheta)
+
+        return doubleArrayOf(
+            x1, y1,
+            x1 - y1 * alpha, y1 + x1 * alpha,
+            x2 + y2 * alpha, y2 - x2 * alpha,
+            x2, y2
         )
     }
 
@@ -183,9 +197,9 @@ object CommandOperations {
      * expected type 'C' after the conversion
      */
     fun ellipticalArcToCurve(
-        x1: Float, y1: Float, x2: Float, y2: Float,
-        fa: Float, fs: Float, rx: Float, ry: Float, phi: Float
-    ): ArrayList<ArrayList<Float>> {
+        x1: Double, y1: Double, x2: Double, y2: Double,
+        fa: Double, fs: Double, rx: Double, ry: Double, phi: Double
+    ): ArrayList<DoubleArray> {
 
         val sinPhi = Math.sin(phi * TAU / 360.0)
         val cosPhi = Math.cos(phi * TAU / 360.0)
@@ -199,53 +213,53 @@ object CommandOperations {
             return arrayListOf()
         }
 
-        if (rx == 0.0f || ry == 0.0f) {
+        if (rx == 0.0 || ry == 0.0) {
             // one of the radii is zero
             return arrayListOf()
         }
 
         // compensate out-of-range radii
-        var _rx = Math.abs(rx)
-        var _ry = Math.abs(ry)
+        var rx = Math.abs(rx)
+        var ry = Math.abs(ry)
 
-        val lambda = (x1p * x1p) / (_rx * _rx) + (y1p * y1p) / (_ry * _ry)
+        val lambda = (x1p * x1p) / (rx * rx) + (y1p * y1p) / (ry * ry)
         if (lambda > 1) {
-            _rx *= Math.sqrt(lambda).toFloat()
-            _ry *= Math.sqrt(lambda).toFloat()
+            rx *= Math.sqrt(lambda)
+            ry *= Math.sqrt(lambda)
         }
 
         // get center parameters (cx, cy, theta1, deltaTheta)
-        val cc = getArcCenter(x1, y1, x2, y2, fa, fs, _rx, _ry, sinPhi.toFloat(), cosPhi.toFloat())
+        val cc = getArcCenter(x1, y1, x2, y2, fa, fs, rx, ry, sinPhi, cosPhi)
 
-        val result = arrayListOf<ArrayList<Float>>()
+        val result = arrayListOf<DoubleArray>()
         var theta1 = cc[2]
         var deltaTheta = cc[3]
 
         // split an arc to multiple segments, so each segment will be less than τ/4 (= 90°)
         val segments = Math.max(Math.ceil(Math.abs(deltaTheta) / (TAU / 4.0)), 1.0)
-        deltaTheta /= segments.toFloat()
+        deltaTheta /= segments
 
         for (i in 0 until segments.toInt()) {
             result.add(approximateUnitArc(theta1, deltaTheta))
             theta1 += deltaTheta
         }
 
-        fun innerFunc(curve: ArrayList<Float>): ArrayList<Float> {
+        fun innerFunc(curve: DoubleArray): DoubleArray {
             for (i in curve.indices step 2) {
                 var x = curve[i + 0]
                 var y = curve[i + 1]
 
                 // scale
-                x *= _rx
-                y *= _ry
+                x *= rx
+                y *= ry
 
                 // rotate
                 val xp = cosPhi * x - sinPhi * y
                 val yp = sinPhi * x + cosPhi * y
 
                 // translate
-                curve[i + 0] = xp.toFloat() + cc[0]
-                curve[i + 1] = yp.toFloat() + cc[1]
+                curve[i + 0] = xp + cc[0]
+                curve[i + 1] = yp + cc[1]
             }
             return curve
         }
@@ -257,40 +271,63 @@ object CommandOperations {
     }
 
     /**
-     * Absolutize the coordinates for all commands.
+     * Extension function that convert a integer value that holds the corresponding char values and
+     * try to convert it to upper case. {a = 97} -> {A=65}
+     */
+    fun Int.toUpperCase(): Int {
+        return if (this in 97..122) {
+            this - 32
+        } else {
+            this
+        }
+    }
+
+    /**
+     * Extension function that convert a integer value that holds the corresponding char values and
+     * try to convert it to lower case. {A=65} -> {a = 97}
+     */
+    fun Int.toLowerCase(): Int {
+        return if (this in 65..90) {
+            this + 32
+        } else {
+            this
+        }
+    }
+
+    /**
+     * Absolutize the coordinates for all commands, that converts the relative commands to absolute
+     * command for example 'v' to 'V', 'h' to 'H'... You can red more about relative and absolute
+     * commands here: https://www.w3.org/TR/SVG/paths.html
+     * @param commands array list with commands for absolutization
      */
     fun absolutize(commands: ArrayList<Command>): ArrayList<Command> {
 
-        val start = PointF()
-        val p = PointF()
-
         // inner function that is used with the custom map method
-        fun absolutizeInner(command: Command, start: PointF, p: PointF): Command {
+        fun absolutizeInner(command: Command, start: PointD, point: PointD): Command {
 
             val type = command.type
-            val cords = command.coordinates
             val typeUpper = type.toUpperCase()
+            val newCommand = Command(typeUpper, command.coordinates.clone())
 
-            // for relative command
+            // for relative command, those that have type with lowercase 'a', 'v', 'h', ...
             if (type != typeUpper) {
-                command.type = typeUpper
 
                 when (type) {
-                    'a' -> {
-                        cords[5] += p.x
-                        cords[6] += p.y
+                    TYPE_a -> {
+                        newCommand.coordinates[5] += point.x
+                        newCommand.coordinates[6] += point.y
                     }
-                    'v' -> {
-                        cords[0] += p.y
+                    TYPE_v -> {
+                        newCommand.coordinates[0] += point.y
                     }
-                    'h' -> {
-                        cords[0] += p.x
+                    TYPE_h -> {
+                        newCommand.coordinates[0] += point.x
                     }
                     else -> {
                         var i = 0
-                        while (i < cords.size) {
-                            cords[i++] += p.x
-                            cords[i++] += p.y
+                        while (i < newCommand.coordinates.size) {
+                            newCommand.coordinates[i++] += point.x
+                            newCommand.coordinates[i++] += point.y
                         }
                     }
                 }
@@ -298,73 +335,71 @@ object CommandOperations {
 
             // update cursor state
             when (typeUpper) {
-                'Z' -> {
-                    p.x = start.x
-                    p.y = start.y
+                TYPE_Z -> {
+                    point.x = start.x
+                    point.y = start.y
                 }
-                'H' -> {
-                    p.x = cords[0]
+                TYPE_H -> {
+                    point.x = newCommand.coordinates[0]
                 }
-                'V' -> {
-                    p.y = cords[0]
+                TYPE_V -> {
+                    point.y = newCommand.coordinates[0]
                 }
-                'M' -> {
-                    p.x = cords[0]
-                    p.y = cords[1]
-                    start.x = p.x
-                    start.y = p.y
+                TYPE_M -> {
+                    point.x = newCommand.coordinates[0]
+                    point.y = newCommand.coordinates[1]
+                    start.x = point.x
+                    start.y = point.y
                 }
                 else -> {
-                    p.x = cords[cords.size - 2]
-                    p.y = cords[cords.size - 1]
+                    point.x = newCommand.coordinates[newCommand.coordinates.size - 2]
+                    point.y = newCommand.coordinates[newCommand.coordinates.size - 1]
                 }
             }
 
-            return command
+            return newCommand
         }
 
         return commands.customMap { it ->
-            absolutizeInner(it, start, p)
+            absolutizeInner(it, start, point)
         }
     }
 
     /**
-     * Normalize all commands, by converting them from there original command type to
-     * the 'C' type, that can be drawn with the cubicTo method on regular canvas.
-     * Exception is the 'M' - move to command, which remains the same, and is only
-     * given the proper starting point.
+     * Normalize all commands, by converting them from there original command type to the 'C' type,
+     * that can be drawn with the cubicTo method on regular canvas. Exception is the 'M' - move to
+     * command, which remains the same, and is only given the proper starting point. That means all
+     * commands with types 'V', 'H', 'S'... are converted to type 'C' command.
+     * @param commands array list with commands for normalization
      */
     fun normalize(commands: ArrayList<Command>): ArrayList<Command> {
 
         // init state
-        var previousType = ' '
-        var p = PointF()
-        val quad = PointF()
-        var start = PointF()
-        var bezier = PointF()
-        val result = ArrayList<Command>()
+        var previousType = TYPE_NONE
+        val newCommands = ArrayList<Command>()
 
         loop@ for (i in commands.indices) {
 
-            var command = commands[i]
-            val cords = command.coordinates
+            val command = commands[i]
+            val coordinates = command.coordinates
             val typeBeforeChange = command.type
 
             // set the new command that is either kept as M or changed to C
-            command = when (command.type) {
+            val normalizedCommand = when (command.type) {
 
                 // move to
-                'M' -> {
-                    start = PointF(cords[0], cords[1])
-                    Command.fromPoints('M', PointF(start.x, start.y))
+                TYPE_M -> {
+                    start.x = coordinates[0]
+                    start.y = coordinates[1]
+                    Command.fromCoordinates(TYPE_M, start.x, start.y)
                 }
 
                 // elliptical arc
-                'A' -> {
+                TYPE_A -> {
                     val curves = ellipticalArcToCurve(
-                        p.x, p.y,
-                        cords[5], cords[6], cords[3],
-                        cords[4], cords[0], cords[1], cords[2]
+                        point.x, point.y,
+                        coordinates[5], coordinates[6], coordinates[3],
+                        coordinates[4], coordinates[0], coordinates[1], coordinates[2]
                     )
 
                     if (curves.isEmpty()) continue@loop
@@ -372,112 +407,104 @@ object CommandOperations {
                     var newCommand = Command()
                     for (j in curves.indices) {
                         val c = curves[j]
-                        newCommand = Command.fromPoints(
-                            'C',
-                            PointF(c[2], c[3]),
-                            PointF(c[4], c[5]),
-                            PointF(c[6], c[7])
-                        )
+                        newCommand = Command.fromCoordinates(TYPE_C, c[2], c[3], c[4], c[5], c[6], c[7])
                         if (j < curves.size - 1) {
-                            result.add(newCommand)
+                            newCommands.add(newCommand)
                         }
                     }
                     newCommand
                 }
 
                 // shorthand/smooth curve to
-                'S' -> {
+                TYPE_S -> {
 
                     // default control point
-                    val c = PointF(p.x, p.y)
-                    if (previousType == 'C' || previousType == 'S') {
-                        c.x += c.x - bezier.x // reflect the previous commandType's control
-                        c.y += c.y - bezier.y // point relative to the current point
+                    var x = point.x
+                    var y = point.y
+                    if (previousType == TYPE_C || previousType == TYPE_S) {
+                        x += x - bezier.x // reflect the previous commandType's control
+                        y += y - bezier.y // point relative to the current point
                     }
-                    Command.fromPoints(
-                        'C',
-                        c,
-                        PointF(cords[0], cords[1]),
-                        PointF(cords[2], cords[3])
-                    )
+                    Command.fromCoordinates(TYPE_C, x, y, coordinates[0], coordinates[1], coordinates[2], coordinates[3])
                 }
 
                 // shorthand/smooth quadratic Bézier curve to
-                'T' -> {
+                TYPE_T -> {
 
-                    Log.i("jojo", "${previousType}")
-
-                    if (previousType == 'Q' || previousType == 'T') {
-                        quad.x = p.x * 2 - quad.x // as with 'S' reflect previous control point
-                        quad.y = p.y * 2 - quad.y
+                    if (previousType == TYPE_Q || previousType == TYPE_T) {
+                        quad.x = point.x * 2 - quad.x // as with 'S' reflect previous control point
+                        quad.y = point.y * 2 - quad.y
                     } else {
-                        quad.x = p.x
-                        quad.y = p.y
+                        quad.x = point.x
+                        quad.y = point.y
                     }
-                    Command.fromQuadratic(p, quad, PointF(cords[0], cords[1]))
+                    Command.fromQuadratic(point.x, point.y, quad.x, quad.y, coordinates[0], coordinates[1])
                 }
 
                 // quadratic Bézier curve to
-                'Q' -> {
-                    quad.x = cords[0]
-                    quad.y = cords[1]
-                    Command.fromQuadratic(
-                        p,
-                        PointF(cords[0], cords[1]),
-                        PointF(cords[2], cords[3])
-                    )
+                TYPE_Q -> {
+                    quad.x = coordinates[0]
+                    quad.y = coordinates[1]
+                    Command.fromQuadratic(point.x, point.y, coordinates[0], coordinates[1], coordinates[2], coordinates[3])
                 }
 
                 // line to
-                'L' -> {
-                    Command.fromLine(p, PointF(cords[0], cords[1]))
+                TYPE_L -> {
+                    Command.fromLine(point.x, point.y, coordinates[0], coordinates[1])
                 }
 
                 // horizontal line to
-                'H' -> {
-                    Command.fromLine(p, PointF(cords[0], p.y))
+                TYPE_H -> {
+                    Command.fromLine(point.x, point.y, coordinates[0], point.y)
                 }
 
                 // vertical line to
-                'V' -> {
-                    Command.fromLine(p, PointF(p.x, cords[0]))
+                TYPE_V -> {
+                    Command.fromLine(point.x, point.y, point.x, coordinates[0])
                 }
 
                 // close path
-                'Z' -> {
-                    Command.fromLine(p, start)
+                TYPE_Z -> {
+                    Command.fromLine(point.x, point.y, start.x, start.y)
                 }
 
                 // curve to
-                'C' -> {
-                    Command.fromPoints(
-                        'C',
-                        PointF(cords[0], cords[1]),
-                        PointF(cords[2], cords[3]),
-                        PointF(cords[4], cords[5])
-                    )
+                TYPE_C -> {
+                    Command.fromCoordinates(TYPE_C, coordinates[0], coordinates[1], coordinates[2], coordinates[3], coordinates[4], coordinates[5])
                 }
 
+                // empty command, for unrecognized type
                 else -> Command()
             }
 
             // update states for the next loop
-            val points = command.points
+            val normalizedCoordinates = normalizedCommand.coordinates
+            val size = normalizedCoordinates.size
             previousType = typeBeforeChange
-            p = PointF(points[points.size - 1].x, points[points.size - 1].y)
-            bezier = if (cords.size > 2) {
-                PointF(points[points.size - 2].x, points[points.size - 2].y)
-            } else {
-                PointF(p.x, p.y)
+
+            // get last point that will be start point for next command
+            if (size >= 2) {
+                point.x = normalizedCoordinates[size - 2]
+                point.y = normalizedCoordinates[size - 1]
             }
-            result.add(command)
+
+            if (size >= 4) {
+                bezier.x = normalizedCoordinates[size - 4]
+                bezier.y = normalizedCoordinates[size - 3]
+            } else {
+                bezier.x = point.x
+                bezier.y = point.y
+            }
+            newCommands.add(normalizedCommand)
         }
 
-        return result
+        return newCommands
     }
 
     /**
-     * Custom map method, attached to array list
+     * Custom map method, attached to array list. This extension function allows
+     * to call method for array list adn that way mapping the values.
+     * @param transform transformation function used for updating values
      */
     fun <T> ArrayList<T>.customMap(transform: (T) -> T): ArrayList<T> {
         for (i in this.indices) {
