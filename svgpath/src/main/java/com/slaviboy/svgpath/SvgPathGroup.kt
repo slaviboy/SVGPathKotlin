@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2020 Stanislav Georgiev
+* Copyright (C) 2022 Stanislav Georgiev
 * https://github.com/slaviboy
 *
 * Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,11 +17,6 @@
 package com.slaviboy.svgpath
 
 import android.graphics.*
-import com.slaviboy.graphics.MatrixD
-import com.slaviboy.graphics.PointD
-import com.slaviboy.graphics.RectD
-import java.util.*
-import kotlin.collections.ArrayList
 import com.slaviboy.svgpath.SvgPath.RenderProperties
 
 /**
@@ -34,7 +29,7 @@ import com.slaviboy.svgpath.SvgPath.RenderProperties
 class SvgPathGroup(
     var svgPaths: ArrayList<SvgPath> = arrayListOf(),
     var renderProperties: RenderProperties = RenderProperties(),
-    var matrix: MatrixD = MatrixD()
+    var matrix: Matrix = Matrix()
 ) {
 
     constructor(vararg paths: SvgPath) : this() {
@@ -56,19 +51,19 @@ class SvgPathGroup(
     var isUpdated: Boolean    // if paths are updated and calling the getter for 'bound' for the path should generated again or use previous value
 
     // bound surrounding all paths
-    var bound: RectD = RectD()
+    var bound: RectF = RectF()
         get() {
             if (isUpdated) {
                 isUpdated = false
 
-                val boundTemp = RectD(
-                    Double.POSITIVE_INFINITY,
-                    Double.POSITIVE_INFINITY,
-                    Double.NEGATIVE_INFINITY,
-                    Double.NEGATIVE_INFINITY
+                val boundTemp = RectF(
+                    Float.POSITIVE_INFINITY,
+                    Float.POSITIVE_INFINITY,
+                    Float.NEGATIVE_INFINITY,
+                    Float.NEGATIVE_INFINITY
                 )
 
-                val bound = RectD()
+                val bound = RectF()
 
                 // loop through all path bounds and find the minimum and maximum for X and Y
                 svgPaths.forEach {

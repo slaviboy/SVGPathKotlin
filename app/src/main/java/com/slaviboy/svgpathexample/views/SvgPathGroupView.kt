@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2020 Stanislav Georgiev
+* Copyright (C) 2022 Stanislav Georgiev
 * https://github.com/slaviboy
 *
 * Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,10 +17,13 @@
 package com.slaviboy.svgpathexample.views
 
 import android.content.Context
-import android.graphics.*
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.Paint
 import android.util.AttributeSet
 import android.view.View
 import com.slaviboy.svgpath.SvgPathGroup
+import com.slaviboy.svgpathexample.extensions.center
 import com.slaviboy.svgpathexample.views.SvgPathView.Companion.afterMeasured
 
 /**
@@ -59,23 +62,23 @@ class SvgPathGroupView : View {
 
         // set properties to all paths in the group
         svgPathGroup.renderProperties.apply {
-            strokeWidth = 0.7
+            strokeWidth = 0.7f
             strokeColor = Color.BLUE
             strokeJoin = Paint.Join.ROUND
             strokeCap = Paint.Cap.ROUND
         }
 
         // values to translate each path separately
-        val translateValues = doubleArrayOf(
-            -8.0, 0.0,
-            0.0, 0.0,
-            8.0, 0.0,
-            -8.0, 8.0,
-            0.0, 8.0,
-            8.0, 8.0,
-            -8.0, 16.0,
-            0.0, 16.0,
-            8.0, 16.0
+        val translateValues = floatArrayOf(
+            -8.0f, 0.0f,
+            0.0f, 0.0f,
+            8.0f, 0.0f,
+            -8.0f, 8.0f,
+            0.0f, 8.0f,
+            8.0f, 8.0f,
+            -8.0f, 16.0f,
+            0.0f, 16.0f,
+            8.0f, 16.0f
         )
 
         // translate each path separately

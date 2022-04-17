@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2020 Stanislav Georgiev
+* Copyright (C) 2022 Stanislav Georgiev
 * https://github.com/slaviboy
 *
 * Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,8 +17,6 @@
 package com.slaviboy.svgpath
 
 import android.graphics.*
-import com.slaviboy.graphics.MatrixD
-import com.slaviboy.graphics.RectD
 import com.slaviboy.svgpath.Command.Companion.TYPE_C
 import com.slaviboy.svgpath.Command.Companion.TYPE_M
 import com.slaviboy.svgpath.Command.Companion.TYPE_Z
@@ -26,7 +24,6 @@ import com.slaviboy.svgpath.CommandOperations.absolutize
 import com.slaviboy.svgpath.CommandOperations.normalize
 import com.slaviboy.svgpath.CommandOperations.parse
 import com.slaviboy.svgpath.CommandOperations.toUpperCase
-import kotlin.collections.ArrayList
 
 /**
  * Class that gets svg path commands data, and translate it to canvas commands,
@@ -38,29 +35,29 @@ import kotlin.collections.ArrayList
 class SvgPath(
     var data: String,
     var renderProperties: RenderProperties = RenderProperties(),
-    var matrix: MatrixD = MatrixD()
+    var matrix: Matrix = Matrix()
 ) {
 
     val initialCommands: ArrayList<Command>                                                    // initial path commands that are extracted from the data string
     val absolutizedCommands: ArrayList<Command>                                                // absolutized commands converted from the initial commands, that means commands with lowercase 'v', 'h', 's'.. are converted to absolute command with upper case 'V', 'H', 'S'..
     val normalizedCommands: ArrayList<Command>                                                 // normalized commands converted from the absolutized commands, that means converted from any command 'V', 'H', 'S' to 'C' command
     var isUpdated: Boolean                                                                     // if path is updated and calling the getter for 'bound' for the path should generated again or use previous value
-    internal var tempMatrix: MatrixD                                                           // temp matrix object used in the conversion
+    internal var tempMatrix: Matrix                                                           // temp matrix object used in the conversion
     internal lateinit var onDrawListener: ((canvas: Canvas, paint: Paint, path: Path) -> Unit) // reference to the callback for the onDraw
 
     // the boundary box that surrounds the path
-    var bound: RectD = RectD()
+    var bound: RectF = RectF()
         get() {
             if (isUpdated) {
 
                 isUpdated = false
-                var boundsOut = RectD()
+                var boundsOut = RectF()
                 if (normalizedCommands.size > 0) {
 
-                    val bounds = RectD(Double.POSITIVE_INFINITY, Double.POSITIVE_INFINITY, Double.NEGATIVE_INFINITY, Double.NEGATIVE_INFINITY)
+                    val bounds = RectF(Float.POSITIVE_INFINITY, Float.POSITIVE_INFINITY, Float.NEGATIVE_INFINITY, Float.NEGATIVE_INFINITY)
 
                     // transform the coordinates using current matrix transformation
-                    val transformedCoordinates = ArrayList<DoubleArray>()
+                    val transformedCoordinates = ArrayList<FloatArray>()
                     normalizedCommands.forEach {
                         transformedCoordinates.add(it.transform(matrix))
                     }
@@ -99,7 +96,7 @@ class SvgPath(
         absolutizedCommands = absolutize(initialCommands)
         normalizedCommands = normalize(absolutizedCommands)
         isUpdated = true
-        tempMatrix = MatrixD()
+        tempMatrix = Matrix()
     }
 
     /**
@@ -156,7 +153,7 @@ class SvgPath(
      */
     fun draw(
         canvas: Canvas, paint: Paint = Paint().apply { isAntiAlias = true },
-        path: Path = generatePath(), groupMatrix: MatrixD? = null, groupRenderProperties: RenderProperties? = null
+        path: Path = generatePath(), groupMatrix: Matrix? = null, groupRenderProperties: RenderProperties? = null
     ) {
 
         // it will trigger the callback instead of continuing the drawing from this method
@@ -168,9 +165,9 @@ class SvgPath(
         // apply transformations directly to the canvas
         if (groupMatrix != null) {
             tempMatrix.setConcat(groupMatrix, matrix)
-            canvas.setMatrix(tempMatrix.matrix)
+            canvas.setMatrix(tempMatrix)
         } else {
-            canvas.setMatrix(matrix.matrix)
+            canvas.setMatrix(matrix)
         }
 
         // if render property values are set for the SvgPath then get it from there, if nor get it from the group
@@ -245,7 +242,7 @@ class SvgPath(
             if (groupRenderProperties?.opacity != null) {
                 groupRenderProperties.opacity!!
             } else {
-                1.0
+                1.0f
             }
         }
         //endregion
@@ -277,21 +274,21 @@ class SvgPath(
     /**
      * Get the coordinates from the array list containing the initial commands
      */
-    fun getInitialCoordinates(): ArrayList<DoubleArray> {
+    fun getInitialCoordinates(): ArrayList<FloatArray> {
         return Command.getCoordinates(initialCommands)
     }
 
     /**
      * Get the coordinates from the array list containing the absolutized commands
      */
-    fun getAbsolutizedCoordinates(): ArrayList<DoubleArray> {
+    fun getAbsolutizedCoordinates(): ArrayList<FloatArray> {
         return Command.getCoordinates(absolutizedCommands)
     }
 
     /**
      * Get the coordinates from the array list containing the normalized commands
      */
-    fun getNormalizedCoordinates(): ArrayList<DoubleArray> {
+    fun getNormalizedCoordinates(): ArrayList<FloatArray> {
         return Command.getCoordinates(normalizedCommands)
     }
 
@@ -300,9 +297,9 @@ class SvgPath(
      * object is used.
      * @param matrix transformation matrix whit the transformation that will be applied to the path
      */
-    fun getTransformedCoordinates(matrix: MatrixD = this.matrix): ArrayList<DoubleArray> {
+    fun getTransformedCoordinates(matrix: Matrix = this.matrix): ArrayList<FloatArray> {
 
-        val transformedCoordinates = ArrayList<DoubleArray>()
+        val transformedCoordinates = ArrayList<FloatArray>()
         normalizedCommands.forEach {
             transformedCoordinates.add(it.transform(matrix))
         }
@@ -324,10 +321,10 @@ class SvgPath(
     data class RenderProperties(
         var strokeJoin: Paint.Join? = Paint.Join.MITER,
         var strokeCap: Paint.Cap? = Paint.Cap.SQUARE,
-        var strokeWidth: Double? = 1.0,
+        var strokeWidth: Float? = 1.0f,
         var strokeColor: Int? = Color.BLACK,
         var fillColor: Int? = Color.TRANSPARENT,
-        var opacity: Double? = 1.0
+        var opacity: Float? = 1.0f
     ) {
 
         constructor(renderProperties: RenderProperties) : this(renderProperties.strokeJoin, renderProperties.strokeCap, renderProperties.strokeWidth, renderProperties.strokeColor, renderProperties.fillColor, renderProperties.opacity)

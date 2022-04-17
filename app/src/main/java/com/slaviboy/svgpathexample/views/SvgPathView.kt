@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2020 Stanislav Georgiev
+* Copyright (C) 2022 Stanislav Georgiev
 * https://github.com/slaviboy
 *
 * Licensed under the Apache License, Version 2.0 (the "License");
@@ -22,9 +22,10 @@ import android.graphics.Paint.Align
 import android.util.AttributeSet
 import android.view.View
 import android.view.ViewTreeObserver
-import com.slaviboy.svgpath.SvgPath.RenderProperties
 import com.slaviboy.svgpath.SvgPath
+import com.slaviboy.svgpath.SvgPath.RenderProperties
 import com.slaviboy.svgpathexample.R
+import com.slaviboy.svgpathexample.extensions.center
 
 /**
  * Simple view, that demonstrates single path drawing from svg path data passed as string
@@ -70,14 +71,14 @@ class SvgPathView : View {
         val data = resources.getString(R.string.bulgaria)
         svgPath = SvgPath(data, RenderProperties().apply {
             fillColor = Color.GREEN
-            opacity = 0.2
+            opacity = 0.2f
         })
 
         // set onDraw method that will be called when drawing is required
         svgPath.onDraw { canvas, paint, path ->
 
             path.apply {
-                transform(svgPath.matrix.matrix)
+                transform(svgPath.matrix)
                 computeBounds(bound, false)
             }
 
@@ -123,8 +124,8 @@ class SvgPathView : View {
             svgPath.matrix.apply {
                 postTranslate(-center.x, -center.y)
                 //postRotate(180.0)
-                postScale(width / (boundWidth * 1.5), width / (boundWidth * 1.5))
-                postTranslate(width / 2.0, height / 2.0)
+                postScale(width / (boundWidth * 1.5f), width / (boundWidth * 1.5f))
+                postTranslate(width / 2.0f, height / 2.0f)
             }
 
             paint.textSize = width / 12f

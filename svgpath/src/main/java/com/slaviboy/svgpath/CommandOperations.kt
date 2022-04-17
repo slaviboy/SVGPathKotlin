@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2020 Stanislav Georgiev
+* Copyright (C) 2022 Stanislav Georgiev
 * https://github.com/slaviboy
 *
 * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,16 +16,16 @@
 */
 package com.slaviboy.svgpath
 
-import com.slaviboy.graphics.PointD
+import android.graphics.PointF
 import com.slaviboy.svgpath.Command.Companion.TYPE_A
 import com.slaviboy.svgpath.Command.Companion.TYPE_C
 import com.slaviboy.svgpath.Command.Companion.TYPE_H
 import com.slaviboy.svgpath.Command.Companion.TYPE_L
 import com.slaviboy.svgpath.Command.Companion.TYPE_M
+import com.slaviboy.svgpath.Command.Companion.TYPE_NONE
 import com.slaviboy.svgpath.Command.Companion.TYPE_Q
 import com.slaviboy.svgpath.Command.Companion.TYPE_S
 import com.slaviboy.svgpath.Command.Companion.TYPE_T
-import com.slaviboy.svgpath.Command.Companion.TYPE_NONE
 import com.slaviboy.svgpath.Command.Companion.TYPE_V
 import com.slaviboy.svgpath.Command.Companion.TYPE_Z
 import com.slaviboy.svgpath.Command.Companion.TYPE_a
@@ -40,13 +40,13 @@ import com.slaviboy.svgpath.Command.Companion.numberOfCoordinates
  */
 object CommandOperations {
 
-    internal const val TAU: Double = Math.PI * 2.0
+    internal const val TAU: Float = PI * 2.0f
 
     // temp points used in the conversion, instead of creating new one each time
-    internal val point = PointD()
-    internal val quad = PointD()
-    internal val start = PointD()
-    internal val bezier = PointD()
+    internal val point = PointF()
+    internal val quad = PointF()
+    internal val start = PointF()
+    internal val bezier = PointF()
 
     /**
      * Parse the string data, and separate it to the supposing commands
@@ -65,8 +65,8 @@ object CommandOperations {
             if (splitText.isNotEmpty()) {
 
                 // ge the supposing type and coordinates
-                val type = splitText[0].toInt()
-                val typeUpperCase = splitText[0].toUpperCase().toInt()
+                val type = splitText[0].code
+                val typeUpperCase = splitText[0].uppercaseChar().code
                 val coordinates = Command.parseIntsAndDoubles(splitText.subSequence(1, splitText.length).toString())
 
                 if (typeUpperCase == TYPE_Z) {
@@ -97,9 +97,9 @@ object CommandOperations {
      * @return array list {cx, cy, theta1, deltaTheta}
      */
     fun getArcCenter(
-        x1: Double, y1: Double, x2: Double, y2: Double, fa: Double, fs: Double,
-        rx: Double, ry: Double, sinPhi: Double, cosPhi: Double
-    ): DoubleArray {
+        x1: Float, y1: Float, x2: Float, y2: Float, fa: Float, fs: Float,
+        rx: Float, ry: Float, sinPhi: Float, cosPhi: Float
+    ): FloatArray {
 
         /**
          *  moving an ellipse so origin will be the middle point
@@ -118,11 +118,11 @@ object CommandOperations {
         var radicant = (rxSq * rySq) - (rxSq * y1pSq) - (rySq * x1pSq)
         if (radicant < 0.0) {
             // due to rounding errors it might be e.g. -1.3877787807814457e-17
-            radicant = 0.0
+            radicant = 0.0f
         }
 
         radicant /= (rxSq * y1pSq) + (rySq * x1pSq)
-        radicant = Math.sqrt(radicant) * (if (fa == fs) -1 else 1)
+        radicant = sqrt(radicant) * (if (fa == fs) -1 else 1)
 
         val cxp = radicant * rx / ry * y1p
         val cyp = radicant * -ry / rx * x1p
@@ -137,17 +137,17 @@ object CommandOperations {
         val v2x = (-x1p - cxp) / rx
         val v2y = (-y1p - cyp) / ry
 
-        val theta1 = unitVectorAngle(1.0, 0.0, v1x, v1y)
+        val theta1 = unitVectorAngle(1.0f, 0.0f, v1x, v1y)
         var deltaTheta = unitVectorAngle(v1x, v1y, v2x, v2y)
 
-        if (fs == 0.0 && deltaTheta > 0.0) {
+        if (fs == 0.0f && deltaTheta > 0.0f) {
             deltaTheta -= TAU
         }
-        if (fs == 1.0 && deltaTheta < 0.0) {
+        if (fs == 1.0f && deltaTheta < 0.0f) {
             deltaTheta += TAU
         }
 
-        return doubleArrayOf(cx, cy, theta1, deltaTheta)
+        return floatArrayOf(cx, cy, theta1, deltaTheta)
     }
 
     /**
@@ -155,36 +155,37 @@ object CommandOperations {
      *  between radii of circular arcs, we can use simplified math
      *  (without length normalization)
      */
-    fun unitVectorAngle(ux: Double, uy: Double, vx: Double, vy: Double): Double {
+    fun unitVectorAngle(ux: Float, uy: Float, vx: Float, vy: Float): Float {
+
         val sign = if (ux * vy - uy * vx < 0.0) -1 else 1
         var dot = ux * vx + uy * vy
 
         // add this to work with arbitrary vectors:
-        // dot /= Math.sqrt(ux * ux + uy * uy) * Math.sqrt(vx * vx + vy * vy);
+        // dot /= sqrt(ux * ux + uy * uy) * sqrt(vx * vx + vy * vy);
         // rounding errors, e.g. -1.0000000000000002 can screw up this
         if (dot > 1.0) {
-            dot = 1.0
+            dot = 1.0f
         }
         if (dot < -1.0) {
-            dot = -1.0
+            dot = -1.0f
         }
 
-        return (sign * Math.acos(dot))
+        return sign * acos(dot)
     }
 
     /**
      * Approximate one unit arc segment with bézier curves
      */
-    fun approximateUnitArc(theta1: Double, deltaTheta: Double): DoubleArray {
+    fun approximateUnitArc(theta1: Float, deltaTheta: Float): FloatArray {
 
-        val alpha = 4.0 / 3.0 * Math.tan(deltaTheta / 4.0)
+        val alpha = 4.0f / 3.0f * tan(deltaTheta / 4.0f)
 
-        val x1 = Math.cos(theta1)
-        val y1 = Math.sin(theta1)
-        val x2 = Math.cos(theta1 + deltaTheta)
-        val y2 = Math.sin(theta1 + deltaTheta)
+        val x1 = cos(theta1)
+        val y1 = sin(theta1)
+        val x2 = cos(theta1 + deltaTheta)
+        val y2 = sin(theta1 + deltaTheta)
 
-        return doubleArrayOf(
+        return floatArrayOf(
             x1, y1,
             x1 - y1 * alpha, y1 + x1 * alpha,
             x2 + y2 * alpha, y2 - x2 * alpha,
@@ -197,46 +198,46 @@ object CommandOperations {
      * expected type 'C' after the conversion
      */
     fun ellipticalArcToCurve(
-        x1: Double, y1: Double, x2: Double, y2: Double,
-        fa: Double, fs: Double, rx: Double, ry: Double, phi: Double
-    ): ArrayList<DoubleArray> {
+        x1: Float, y1: Float, x2: Float, y2: Float,
+        fa: Float, fs: Float, rx: Float, ry: Float, phi: Float
+    ): ArrayList<FloatArray> {
 
-        val sinPhi = Math.sin(phi * TAU / 360.0)
-        val cosPhi = Math.cos(phi * TAU / 360.0)
+        val sinPhi = sin(phi * TAU / 360.0f)
+        val cosPhi = cos(phi * TAU / 360.0f)
 
         // make sure radii are valid
-        val x1p = cosPhi * (x1 - x2) / 2.0 + sinPhi * (y1 - y2) / 2.0
-        val y1p = -sinPhi * (x1 - x2) / 2.0 + cosPhi * (y1 - y2) / 2.0
+        val x1p = cosPhi * (x1 - x2) / 2.0f + sinPhi * (y1 - y2) / 2.0f
+        val y1p = -sinPhi * (x1 - x2) / 2.0f + cosPhi * (y1 - y2) / 2.0f
 
-        if (x1p == 0.0 && y1p == 0.0) {
-            // we're asked to draw line to itself
+        // we're asked to draw line to itself
+        if (x1p == 0.0f && y1p == 0.0f) {
             return arrayListOf()
         }
 
-        if (rx == 0.0 || ry == 0.0) {
-            // one of the radii is zero
+        // one of the radii is zero
+        if (rx == 0.0f || ry == 0.0f) {
             return arrayListOf()
         }
 
         // compensate out-of-range radii
-        var rx = Math.abs(rx)
-        var ry = Math.abs(ry)
+        var rx = abs(rx)
+        var ry = abs(ry)
 
         val lambda = (x1p * x1p) / (rx * rx) + (y1p * y1p) / (ry * ry)
         if (lambda > 1) {
-            rx *= Math.sqrt(lambda)
-            ry *= Math.sqrt(lambda)
+            rx *= sqrt(lambda)
+            ry *= sqrt(lambda)
         }
 
         // get center parameters (cx, cy, theta1, deltaTheta)
         val cc = getArcCenter(x1, y1, x2, y2, fa, fs, rx, ry, sinPhi, cosPhi)
 
-        val result = arrayListOf<DoubleArray>()
+        val result = arrayListOf<FloatArray>()
         var theta1 = cc[2]
         var deltaTheta = cc[3]
 
         // split an arc to multiple segments, so each segment will be less than τ/4 (= 90°)
-        val segments = Math.max(Math.ceil(Math.abs(deltaTheta) / (TAU / 4.0)), 1.0)
+        val segments = max(ceil(abs(deltaTheta) / (TAU / 4.0f)), 1.0f)
         deltaTheta /= segments
 
         for (i in 0 until segments.toInt()) {
@@ -244,7 +245,7 @@ object CommandOperations {
             theta1 += deltaTheta
         }
 
-        fun innerFunc(curve: DoubleArray): DoubleArray {
+        fun innerFunc(curve: FloatArray): FloatArray {
             for (i in curve.indices step 2) {
                 var x = curve[i + 0]
                 var y = curve[i + 1]
@@ -303,7 +304,7 @@ object CommandOperations {
     fun absolutize(commands: ArrayList<Command>): ArrayList<Command> {
 
         // inner function that is used with the custom map method
-        fun absolutizeInner(command: Command, start: PointD, point: PointD): Command {
+        fun absolutizeInner(command: Command, start: PointF, point: PointF): Command {
 
             val type = command.type
             val typeUpper = type.toUpperCase()

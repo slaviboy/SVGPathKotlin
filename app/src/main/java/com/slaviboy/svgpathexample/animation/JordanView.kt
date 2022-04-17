@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2020 Stanislav Georgiev
+* Copyright (C) 2022 Stanislav Georgiev
 * https://github.com/slaviboy
 *
 * Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,11 +23,10 @@ import android.content.Context
 import android.graphics.*
 import android.util.AttributeSet
 import android.view.View
-import com.slaviboy.graphics.PointD
 import com.slaviboy.svgpath.SvgPathGroup
 import com.slaviboy.svgpathexample.R
+import com.slaviboy.svgpathexample.extensions.center
 import com.slaviboy.svgpathexample.views.SvgPathView.Companion.afterMeasured
-import kotlin.collections.ArrayList
 
 /**
  * Simple path view that draws Michael Jordan logo and signature,
@@ -39,7 +38,7 @@ class JordanView : View, View.OnClickListener {
     constructor(context: Context?, attrs: AttributeSet?) : super(context, attrs) {}
     constructor(context: Context?, attrs: AttributeSet?, defStyleAttr: Int) : super(context, attrs, defStyleAttr) {}
 
-    private val center: PointD                                   // center of the path group
+    private val center: PointF                                   // center of the path group
     private var svgPathGroup: SvgPathGroup                       // the path group with all svg paths
     private var paths: ArrayList<Path>                           // all graphic paths generated from the svg paths
     private val paints: ArrayList<CustomPaint> = ArrayList()     // each path has its own custom paint object, that is used for the animation
@@ -57,7 +56,7 @@ class JordanView : View, View.OnClickListener {
 
         center = svgPathGroup.bound.center()
         svgPathGroup.matrix.apply {
-            //postTranslate(-center.x, -center.y)
+            // postTranslate(-center.x, -center.y)
         }
 
         paths = svgPathGroup.generatePaths()
@@ -101,16 +100,14 @@ class JordanView : View, View.OnClickListener {
             // get bound values for the group boundary box
             svgPathGroup.isUpdated = true
             val bound = svgPathGroup.bound
-            val boundCenter = bound.center()
             val boundWidth = bound.width()
 
             // apply transformations to the whole group
             svgPathGroup.matrix.apply {
-                postTranslate(-boundCenter.x, -boundCenter.y)
+                postTranslate(width / 2f - bound.centerX(), height / 2f - bound.centerY())
                 //postRotate(45.0)
                 //postSkew(0.5, 0.0)
-                postScale(width / (boundWidth * 2), width / (boundWidth * 2))
-                postTranslate(width / 2.0 + width / 40.0, height / 2.0)
+                postScale(width / (boundWidth * 2f), width / (boundWidth * 2f), width / 2f, height / 2f)
             }
         }
 
@@ -142,7 +139,7 @@ class JordanView : View, View.OnClickListener {
 
         // translate to center and down scale
         canvas.save()
-        canvas.setMatrix(svgPathGroup.matrix.matrix)
+        canvas.setMatrix(svgPathGroup.matrix)
 
         for (i in paths.indices) {
             canvas.drawPath(paths[i], paints[i])

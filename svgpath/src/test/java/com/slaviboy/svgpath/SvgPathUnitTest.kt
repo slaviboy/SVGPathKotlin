@@ -1,17 +1,16 @@
 package com.slaviboy.svgpath
 
 import android.content.Context
+import android.graphics.RectF
 import android.os.Build
 import androidx.test.core.app.ApplicationProvider
 import com.google.common.truth.Truth.assertThat
 import com.google.gson.Gson
-import com.slaviboy.graphics.RectD
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import java.util.*
-import kotlin.collections.ArrayList
 
 @Config(sdk = [Build.VERSION_CODES.P])
 @RunWith(RobolectricTestRunner::class)
@@ -31,8 +30,8 @@ class SvgPathUnitTest {
     class CommandOperationsData(
         var data: String, var initial_commands: ArrayList<Command>,
         var absolutized_commands: ArrayList<Command>, var normalized_commands: ArrayList<Command>,
-        var initial_commands_coordinates: ArrayList<DoubleArray>, var absolutized_commands_coordinates: ArrayList<DoubleArray>,
-        var normalized_commands_coordinates: ArrayList<DoubleArray>, var transformed_commands_coordinates: ArrayList<DoubleArray>
+        var initial_commands_coordinates: ArrayList<FloatArray>, var absolutized_commands_coordinates: ArrayList<FloatArray>,
+        var normalized_commands_coordinates: ArrayList<FloatArray>, var transformed_commands_coordinates: ArrayList<FloatArray>
     )
 
     @Test
@@ -53,21 +52,21 @@ class SvgPathUnitTest {
 
         // get the bound of the path
         var bound = svgPath.bound
-        assertThat(bound).isEqualTo(RectD(18.742656707763672, 4.999999523162842, 450.0, 450.0))
+        assertThat(bound).isEqualTo(RectF(18.742656707763672f, 4.999999523162842f, 450.0f, 450.0f))
 
         // apply matrix transformations and get bound of the path, make sure you set {isUpdated=true} to force calculating the new bound
         svgPath.matrix.apply {
-            postTranslate(72.3, 123.4)
-            postRotate(5.2)
-            postScale(2.1, 1.6)
-            postSkew(0.1, 0.32)
-            postRotate(3.31, 2.6, 33.2)
-            postScale(4.2, 1.4, 77.4, 23.1)
-            postSkew(0.23, 0.24, 66.6, 1.3)
+            postTranslate(72.3f, 123.4f)
+            postRotate(5.2f)
+            postScale(2.1f, 1.6f)
+            postSkew(0.1f, 0.32f)
+            postRotate(3.31f, 2.6f, 33.2f)
+            postScale(4.2f, 1.4f, 77.4f, 23.1f)
+            postSkew(0.23f, 0.24f, 66.6f, 1.3f)
         }
         svgPath.isUpdated = true
         bound = svgPath.bound
-        assertThat(bound).isEqualTo(RectD(567.7666625976562, 731.096435546875, 4421.9111328125, 2840.2587890625))
+        assertThat(bound).isEqualTo(RectF(567.7666625976562f, 731.096435546875f, 4421.9111328125f, 2840.2587890625f))
 
         val initialCoordinates = svgPath.getInitialCoordinates()
         assertThat(Arrays.deepEquals(initialCoordinates.toArray(), commandOperationsData.initial_commands_coordinates.toArray())).isTrue()
