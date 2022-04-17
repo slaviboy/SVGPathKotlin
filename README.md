@@ -10,7 +10,7 @@ SVGPathKotlin is simple library that generate commands that are used for creatin
 
 [![Platform](https://img.shields.io/badge/platform-android-green.svg)](http://developer.android.com/index.html)
 [![API](https://img.shields.io/badge/API-21%2B-brightgreen.svg?style=flat)](https://android-arsenal.com/api?level=21)
-[![Download](https://img.shields.io/badge/version-0.2.0-blue)](https://github.com/slaviboy/SVGPathKotlin/releases/tag/v0.2.0)
+[![Download](https://img.shields.io/badge/version-0.3.0-blue)](https://github.com/slaviboy/SVGPathKotlin/releases/tag/v0.3.0)
 
 ## Add to your project
 Add the jitpack maven repository
@@ -24,9 +24,8 @@ allprojects {
 ``` 
 Add the dependency
 ```
-dependencies {
-  implementation 'com.github.slaviboy:GraphicsKotlin:v0.2.0'
-  implementation 'com.github.slaviboy:SVGPathKotlin:v0.2.0'
+dependencies { 
+  implementation 'com.github.slaviboy:SVGPathKotlin:v0.3.0'
 }
 ```
  
@@ -39,14 +38,14 @@ val svgPath = SvgPath("M 10 80 Q 52.5 10, 95 80 T 180 80")
 
 // change stroke color and width for the path
 svgPath.renderProperties.apply { 
-     strokeWidth = 5.0
+     strokeWidth = 5.0f
      strokeColor = Color.GREEN
 }
         
 // apply transformation to the path using its matrix
 svgPath.matrix.apply {
-     postRotate(45.0)
-     postSkew(0.5, 0.0)
+     postRotate(45.0f)
+     postSkew(0.5f, 0.0f)
 }
 ```
  
