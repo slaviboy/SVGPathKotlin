@@ -25,7 +25,7 @@ allprojects {
 Add the dependency
 ```
 dependencies { 
-  implementation 'com.github.slaviboy:SVGPathKotlin:v0.3.0'
+  implementation 'com.github.slaviboy:SVGPathKotlin:0.3.0'
 }
 ```
  
